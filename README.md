@@ -138,11 +138,11 @@ gstream
 ---
 ## Access Page
 <img width="1918" height="909" alt="Screenshot 2025-07-19 215856" src="https://github.com/user-attachments/assets/d64c784c-9aac-4d5e-9960-395c12f0b99c" />
-<img width="1916" height="894" alt="Screenshot 2025-07-19 215912" src="https://github.com/user-attachments/assets/81315b38-01ba-4fc5-93db-cb27f2ea0c8f" />
+<img width="1919" height="905" alt="image" src="https://github.com/user-attachments/assets/a0ba68b2-dd24-45fe-8286-b35953a7cdd1" />
 <img width="1909" height="1033" alt="Screenshot 2025-07-19 223844" src="https://github.com/user-attachments/assets/df29ac0c-0304-4632-adc8-1a93fb612d2d" />
 
 ## Broadcasting
-<img width="1917" height="896" alt="Screenshot 2025-07-19 215942" src="https://github.com/user-attachments/assets/075683f4-03e6-4bb1-879a-86ac24d54f32" />
+<img width="1919" height="905" alt="Screenshot 2025-07-20 010138" src="https://github.com/user-attachments/assets/864f6823-f5aa-4dc5-a5b1-f8d291969c65" />
 
 ## Broadcast Consumer
 <img width="1919" height="911" alt="Screenshot 2025-07-19 220100" src="https://github.com/user-attachments/assets/d648a0f6-39a7-47ae-a7f6-ee74ac272c6d" />
