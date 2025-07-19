@@ -30,7 +30,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             {
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/streaminghub"))
+                if (!string.IsNullOrEmpty(accessToken) &&
+                   (path.StartsWithSegments("/streaminghub") || path.StartsWithSegments("/broadcasthub")))
                 {
                     context.Token = accessToken;
                 }
@@ -40,6 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddControllers();
+// Enable both SignalR hubs
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<TokenService>();
 
@@ -78,8 +80,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-// 4. Map SignalR Hub
+// 4. Map SignalR Hubs
 app.MapHub<StreamingHub>("/streaminghub");
+app.MapHub<BroadcastHub>("/broadcasthub"); // <-- ADD THIS LINE FOR THE NEW HUB
 
 // Add this before app.Run() to serve the frontend files
 app.UseDefaultFiles();
