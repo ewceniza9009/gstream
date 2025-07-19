@@ -232,4 +232,4 @@ gstream
 
 ## 📄 License
 
-**Distribute By: Erwin Wilson Ceniza**
+**Distributed By: Erwin Wilson Ceniza**
