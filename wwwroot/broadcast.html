@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-g" />
+    <meta charset="utf-8" />
     <title>gstream - Broadcast</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,7 +14,6 @@
         #localVideo {
             transform: scaleX(-1);
         }
-        /* Mirror effect for local video */
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
@@ -23,7 +22,6 @@
         <h1 class="text-4xl font-bold text-center mb-2 text-cyan-400">gstream</h1>
         <h2 class="text-xl font-light text-center mb-6 text-gray-300">One-to-Many Broadcast</h2>
 
-        <!-- Login Section -->
         <div id="login-section" class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-sm mx-auto">
             <h2 class="text-2xl font-semibold mb-4 text-center">Login to Broadcast</h2>
             <div class="space-y-4">
@@ -34,11 +32,29 @@
             <p id="login-error" class="text-red-400 mt-4 text-center"></p>
         </div>
 
-        <!-- Role Selection Section -->
         <div id="role-section" class="hidden">
             <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto">
                 <h2 class="text-2xl font-semibold mb-4 text-center">Choose Your Role</h2>
                 <input type="text" id="room-id" placeholder="Enter a Room ID to start or join" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-4">
+
+                <div class="my-4">
+                    <label class="block text-gray-400 mb-2">Select Camera Source:</label>
+                    <div class="flex items-center space-x-6">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="cameraSource" value="local" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
+                            <span class="ml-2 text-white">Local Webcam</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="cameraSource" value="ip" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
+                            <span class="ml-2 text-white">IP Camera</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="ip-camera-section" class="hidden my-4">
+                    <input type="text" id="ip-camera-url" placeholder="Enter IP Cam Stream URL (e.g., MJPEG)" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    <p class="text-xs text-gray-500 mt-1">Note: URL must be a browser-compatible stream like MJPEG or HLS.</p>
+                </div>
                 <div class="flex flex-col md:flex-row gap-4">
                     <button id="start-broadcast-button" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Start Broadcast</button>
                     <button id="view-broadcast-button" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">View Broadcast</button>
@@ -46,21 +62,18 @@
             </div>
         </div>
 
-        <!-- Streaming Section -->
         <div id="streaming-section" class="hidden">
             <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-xl mb-6">
                 <p id="status" class="text-yellow-400"></p>
                 <button id="leave-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300">Leave</button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Local video is only shown to the broadcaster -->
-                <div id="local-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden">
+            <div class="flex justify-center">
+                <div id="local-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full max-w-2xl">
                     <h3 class="text-xl font-semibold mb-2 text-center">My Camera</h3>
                     <video id="localVideo" autoplay playsinline muted class="w-full rounded-md bg-black"></video>
                 </div>
-                <!-- Remote video is only shown to the viewer -->
-                <div id="remote-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden md:col-span-2">
+                <div id="remote-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full max-w-2xl">
                     <h3 class="text-xl font-semibold mb-2 text-center">Live Broadcast</h3>
                     <video id="remoteVideo" autoplay playsinline class="w-full rounded-md bg-black"></video>
                 </div>
@@ -68,7 +81,6 @@
         </div>
     </div>
 
-    <!-- SignalR Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="js/broadcast.js"></script>
 </body>

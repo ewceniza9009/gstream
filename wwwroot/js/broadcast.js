@@ -27,12 +27,15 @@
     const statusDiv = document.getElementById('status');
     const roomIdInput = document.getElementById('room-id');
 
+    const cameraSourceRadios = document.querySelectorAll('input[name="cameraSource"]');
+    const ipCameraSection = document.getElementById('ip-camera-section');
+    const ipCameraUrlInput = document.getElementById('ip-camera-url');
     let jwtToken;
     let signalRConnection;
     let localStream;
-    let peerConnections = {};                         
+    let peerConnections = {};
     let currentRoomId;
-    let userRole;             
+    let userRole;
 
     const iceServers = {
         iceServers: [
@@ -46,7 +49,15 @@
     viewBroadcastBtn.addEventListener('click', viewBroadcast);
     leaveBtn.addEventListener('click', () => window.location.reload());
 
-
+    cameraSourceRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (document.querySelector('input[name="cameraSource"]:checked').value === 'ip') {
+                ipCameraSection.classList.remove('hidden');
+            } else {
+                ipCameraSection.classList.add('hidden');
+            }
+        });
+    });
     async function handleLogin() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -113,7 +124,7 @@
 
         signalRConnection.on('ReceiveIceCandidate', async (candidate) => {
             console.log('Received ICE candidate');
-            const pc = Object.values(peerConnections)[0];             
+            const pc = Object.values(peerConnections)[0];
             if (pc) {
                 try {
                     await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -161,7 +172,7 @@
 
         if (userRole === 'broadcaster') {
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-        } else {     
+        } else {
             pc.ontrack = event => {
                 remoteVideo.srcObject = event.streams[0];
             };
@@ -177,7 +188,53 @@
         return pc;
     }
 
+    async function getCameraStream() {
+        const selectedSource = document.querySelector('input[name="cameraSource"]:checked').value;
 
+        if (selectedSource === 'local') {
+            console.log('Using local webcam.');
+            try {
+                return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            } catch (error) {
+                console.error('Could not get user media.', error);
+                throw new Error('Could not access local camera/microphone. Please check permissions.');
+            }
+        } else {     
+            const url = ipCameraUrlInput.value;
+            if (!url) {
+                throw new Error('Please enter the IP Camera stream URL.');
+            }
+            console.log(`Attempting to use IP camera stream from: ${url}`);
+
+            return new Promise((resolve, reject) => {
+                const ipVideoElement = document.createElement('video');
+                ipVideoElement.setAttribute('crossorigin', 'anonymous');             
+                ipVideoElement.src = url;
+
+                ipVideoElement.addEventListener('loadeddata', () => {
+                    console.log('IP Camera stream data loaded.');
+                    ipVideoElement.play().then(() => {
+                        let stream;
+                        if (typeof ipVideoElement.captureStream === 'function') {
+                            stream = ipVideoElement.captureStream();
+                        } else {
+                            reject(new Error('captureStream API is not supported by this browser.'));
+                            return;
+                        }
+                        console.log('Successfully captured stream from IP camera.');
+                        resolve(stream);
+                    }).catch(e => {
+                        reject(new Error(`Could not play the IP Camera stream. Error: ${e.message}`));
+                    });
+                });
+
+                ipVideoElement.addEventListener('error', (e) => {
+                    console.error('Error loading IP Camera stream.', e);
+                    reject(new Error('Could not load the IP Camera stream. Check the URL, CORS policy, and ensure it is a browser-compatible format.'));
+                });
+            });
+        }
+    }
     async function startBroadcast() {
         userRole = 'broadcaster';
         currentRoomId = roomIdInput.value;
@@ -192,17 +249,17 @@
         }
 
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localStream = await getCameraStream();
+
             localVideo.srcObject = localStream;
             switchToStreamingView();
             await signalRConnection.invoke('StartBroadcast', currentRoomId);
             statusDiv.textContent = `Waiting for viewers in room: ${currentRoomId}`;
         } catch (error) {
-            console.error('Could not start camera.', error);
-            alert('Could not access camera. Please check permissions.');
+            console.error('Could not start broadcast.', error);
+            alert(error.message || 'An unknown error occurred while starting the broadcast.');
         }
     }
-
     async function viewBroadcast() {
         userRole = 'viewer';
         currentRoomId = roomIdInput.value;
@@ -238,6 +295,4 @@
         remoteVideoContainer.classList.add('hidden');
     }
 
-})();                         
-
-
+})();
