@@ -1,20 +1,26 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;     
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using gstream.Hubs;
 using gstream.Services;
 using gstream.Authentication;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
+    ?? throw new InvalidOperationException("Redis connection string is not configured.");
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+builder.Services.AddSingleton<IBroadcastStateService, RedisBroadcastStateService>();
+
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -35,7 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) &&
-                   (path.StartsWithSegments("/streaminghub") || path.StartsWithSegments("/broadcasthub")))
+                    (path.StartsWithSegments("/streaminghub") || path.StartsWithSegments("/broadcasthub")))
                 {
                     context.Token = accessToken;
                 }
@@ -45,16 +51,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     })
     .AddScheme<ApiKeyAuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
 
-
 builder.Services.AddControllers();
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<TokenService>();      
+builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
+    options.Configuration.ChannelPrefix = "gstream:";
+});
+builder.Services.AddSingleton<TokenService>();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins("null", "https://b2twb5ss-44304.asse.devtunnels.ms")      
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -74,14 +81,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/api/config", (IConfiguration config) => {
+    var apiUrl = config["PublicUrl"] ?? throw new InvalidOperationException("PublicUrl is not configured.");
+    return new { apiUrl };
+});
+
 app.MapControllers();
 app.MapHub<StreamingHub>("/streaminghub");
 app.MapHub<BroadcastHub>("/broadcasthub");
-
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

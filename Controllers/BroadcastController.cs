@@ -1,9 +1,7 @@
-﻿using gstream.Hubs;
-using gstream.Models;
+﻿using gstream.Models;
 using gstream.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;     
 
 namespace gstream.Controllers
 {
@@ -13,18 +11,18 @@ namespace gstream.Controllers
     public class BroadcastController : ControllerBase
     {
         private readonly TokenService _tokenService;
-        private readonly IConfiguration _configuration;    
+        private readonly IBroadcastStateService _stateService;
 
-        public BroadcastController(TokenService tokenService, IConfiguration configuration)
+        public BroadcastController(TokenService tokenService, IBroadcastStateService stateService)
         {
             _tokenService = tokenService;
-            _configuration = configuration;    
+            _stateService = stateService;
         }
 
         [HttpGet("join/{roomId}")]
-        public IActionResult JoinBroadcast(string roomId)
+        public async Task<IActionResult> JoinBroadcast(string roomId)
         {
-            if (!BroadcastHub.DoesBroadcastExist(roomId))
+            if (!await _stateService.IsBroadcastActiveAsync(roomId))
             {
                 return NotFound(new { message = "No active broadcast found for the specified room ID." });
             }
@@ -32,15 +30,11 @@ namespace gstream.Controllers
             var tempUser = new UserModel { Username = $"consumer-{Guid.NewGuid()}" };
             var temporaryToken = _tokenService.GenerateToken(tempUser);
 
-            var serverUrl = "https://b2twb5ss-44304.asse.devtunnels.ms";
-            if (string.IsNullOrEmpty(serverUrl))
-            {
-                serverUrl = $"{Request.Scheme}://{Request.Host}";
-            }
+            // The hub URL is now relative, as the base URL is known by the client
             var response = new
             {
                 roomId = roomId,
-                signalRHubUrl = $"{serverUrl}/broadcasthub",
+                signalRHubUrl = "/broadcasthub", // Relative path is more robust
                 token = temporaryToken,
                 message = "Broadcast found. Use the provided token to connect to the SignalR hub."
             };
