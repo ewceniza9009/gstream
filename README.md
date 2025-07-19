@@ -121,13 +121,13 @@ gstream
 ## 🌐 Access the Application
 
 - **One-to-one streaming:**  
-  `http://localhost:5122`
+  `http://localhost:[Port#]`
 
 - **Broadcasting:**  
-  `http://localhost:5122/broadcast.html`
+  `http://localhost:[Port#]/broadcast.html`
 
 - **Broadcast consumer:**  
-  `http://localhost:5122/consumer.html`
+  `http://localhost:[Port#]/consumer.html`
 
 - **Test credentials:**  
   `Username: testuser`  
