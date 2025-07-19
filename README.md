@@ -1,0 +1,232 @@
+Here's a revised version of your `README.md` that preserves **proper Markdown heading formatting**, ensuring that **GitHub renders the preview correctly** with visible headings and structure:
+
+---
+
+```markdown
+# gstream
+
+**gstream** is a real-time video streaming application built with **ASP.NET Core**, **SignalR**, and **WebRTC**. It supports **one-to-one video streaming** and **one-to-many broadcasting**, using **Redis** for state management and **JWT/API key authentication**.
+
+---
+
+## ✨ Features
+
+- 🔗 One-to-one video streaming via WebRTC and SignalR  
+- 📡 One-to-many broadcasting with API key authentication for viewers  
+- 🔐 JWT-based user authentication  
+- 💅 Responsive UI with Tailwind CSS  
+- ⚡ Real-time communication with SignalR and Redis  
+- 🌐 Cross-platform support with .NET 9.0  
+
+---
+
+## 📁 Project Structure
+
+```
+gstream
+├── Authentication
+│   └── ApiKeyAuth.cs             # API key authentication handler
+├── Controllers
+│   ├── AuthController.cs         # User authentication (login)
+│   └── BroadcastController.cs    # Broadcast joining for consumers
+├── Hubs
+│   ├── BroadcastHub.cs           # SignalR hub for broadcasting
+│   └── StreamingHub.cs           # SignalR hub for one-to-one streaming
+├── Models
+│   └── UserModel.cs              # User model for authentication
+├── Properties
+│   └── launchSettings.json       # Development settings
+├── Services
+│   ├── IBroadcastStateService.cs # Broadcast state interface
+│   └── RedisBroadcastService.cs  # Redis-based state service
+├── wwwroot
+│   ├── js
+│   │   ├── broadcast.js          # Broadcasting client logic
+│   │   ├── consumer.js           # Broadcast consumer logic
+│   │   └── main.js               # One-to-one streaming logic
+│   ├── broadcast.html            # Broadcasting UI
+│   ├── consumer.html             # Broadcast consumer UI
+│   └── index.html                # One-to-one streaming UI
+├── .gitattributes
+├── .gitignore
+├── appsettings.Development.json
+├── appsettings.json
+├── gstream.csproj
+├── gstream.http
+├── gstream.sln
+├── Program.cs
+└── TokenService.cs               # JWT token service
+```
+
+---
+
+## ⚙️ Prerequisites
+
+- [.NET 9.0 SDK](https://dotnet.microsoft.com/download)
+- Redis (local or via connection string)
+- Web browser with WebRTC support (e.g., Chrome, Firefox, Edge)
+
+---
+
+## 🚀 Setup
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd gstream
+   ```
+
+2. **Configure Redis**
+
+   Edit `appsettings.json`:
+
+   ```json
+   "ConnectionStrings": {
+     "Redis": "localhost:6379"
+   }
+   ```
+
+3. **Configure JWT**
+
+   ```json
+   "Jwt": {
+     "Issuer": "gstream-api",
+     "Audience": "gstream-clients",
+     "Key": "<your-secure-key>"
+   }
+   ```
+
+4. **Configure API Key**
+
+   ```json
+   "ApiKey": "<your-api-key>"
+   ```
+
+5. **Configure Public URL**
+
+   ```json
+   "PublicUrl": "http://localhost:5122"
+   ```
+
+6. **Restore dependencies**
+
+   ```bash
+   dotnet restore
+   ```
+
+7. **Run the application**
+
+   ```bash
+   dotnet run
+   ```
+
+---
+
+## 🌐 Access the Application
+
+- **One-to-one streaming:**  
+  `http://localhost:5122`
+
+- **Broadcasting:**  
+  `http://localhost:5122/broadcast.html`
+
+- **Broadcast consumer:**  
+  `http://localhost:5122/consumer.html`
+
+- **Test credentials:**  
+  `Username: testuser`  
+  `Password: password`
+
+---
+
+## 🧪 Usage
+
+### 🎥 One-to-One Streaming
+
+1. Go to `index.html`  
+2. Log in with `testuser / password`  
+3. Enter a Room ID  
+4. Click **Join Room**
+
+### 📢 Broadcasting
+
+1. Go to `broadcast.html`  
+2. Log in with `testuser / password`  
+3. Click **Start Broadcast**  
+4. Enter a Room ID and begin streaming
+
+### 👀 Broadcast Consumer
+
+1. Go to `consumer.html`  
+2. Enter your **API Key** and **Room ID**  
+3. Click **Find and View Stream**
+
+---
+
+## 🔐 Authentication
+
+- **Users:** JWT-based via `AuthController`  
+- **Consumers:** API key-based via `ApiKeyAuth`
+
+---
+
+## 📡 WebRTC and SignalR
+
+- **WebRTC:** Peer-to-peer media streaming using STUN servers  
+- **SignalR:** Real-time signaling with Redis backplane
+
+---
+
+## 🔧 Configuration Reference
+
+### `appsettings.json`
+
+```json
+{
+  "PublicUrl": "http://localhost:5122",
+  "ConnectionStrings": {
+    "Redis": "localhost:6379"
+  },
+  "Jwt": {
+    "Issuer": "gstream-api",
+    "Audience": "gstream-clients",
+    "Key": "<your-secure-key>"
+  },
+  "ApiKey": "<your-api-key>"
+}
+```
+
+---
+
+## 🛠 Development
+
+- **Swagger UI:** Available at `/swagger` (in development mode)
+- **HTTP Testing:** Use `gstream.http` with REST Client
+- **Tech Stack:**  
+  - ASP.NET Core 9.0  
+  - SignalR  
+  - Redis  
+  - WebRTC  
+  - Tailwind CSS  
+  - Swashbuckle
+
+---
+
+## ⚠️ Notes
+
+- Ensure camera/microphone permissions are granted in your browser.
+- Local video preview is mirrored.
+- Broadcasts expire after **4 hours**.
+- Only **one broadcaster per room** is allowed.
+
+---
+
+## 📄 License
+
+**Distribute By: Erwin Wilson Ceniza**
+```
+
+---
+
+Paste this content into your `README.md` file — it will render perfectly with all the headings and sections on GitHub. Let me know if you want badges (build status, license, etc.) added!
