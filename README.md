@@ -11,7 +11,7 @@
 - 🔐 JWT-based user authentication
 - 💅 Responsive UI with Tailwind CSS
 - ⚡ Real-time communication with SignalR and Redis
-- 🌐 Cross-platform support with .NET 9.0
+- 🌐 Cross-platform support with .NET 9.0 (Livestream in Mobile, Web, Desktop & etc)
 
 ---
 
