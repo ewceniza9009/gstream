@@ -1,8 +1,3 @@
-Here's a revised version of your `README.md` that preserves **proper Markdown heading formatting**, ensuring that **GitHub renders the preview correctly** with visible headings and structure:
-
----
-
-```markdown
 # gstream
 
 **gstream** is a real-time video streaming application built with **ASP.NET Core**, **SignalR**, and **WebRTC**. It supports **one-to-one video streaming** and **one-to-many broadcasting**, using **Redis** for state management and **JWT/API key authentication**.
@@ -11,18 +6,18 @@ Here's a revised version of your `README.md` that preserves **proper Markdown he
 
 ## ✨ Features
 
-- 🔗 One-to-one video streaming via WebRTC and SignalR  
-- 📡 One-to-many broadcasting with API key authentication for viewers  
-- 🔐 JWT-based user authentication  
-- 💅 Responsive UI with Tailwind CSS  
-- ⚡ Real-time communication with SignalR and Redis  
-- 🌐 Cross-platform support with .NET 9.0  
+- 🔗 One-to-one video streaming via WebRTC and SignalR
+- 📡 One-to-many broadcasting with API key authentication for viewers
+- 🔐 JWT-based user authentication
+- 💅 Responsive UI with Tailwind CSS
+- ⚡ Real-time communication with SignalR and Redis
+- 🌐 Cross-platform support with .NET 9.0
 
 ---
 
 ## 📁 Project Structure
 
-```
+<pre>
 gstream
 ├── Authentication
 │   └── ApiKeyAuth.cs             # API key authentication handler
@@ -56,7 +51,7 @@ gstream
 ├── gstream.sln
 ├── Program.cs
 └── TokenService.cs               # JWT token service
-```
+</pre>
 
 ---
 
@@ -225,6 +220,3 @@ gstream
 ## 📄 License
 
 **Distribute By: Erwin Wilson Ceniza**
-```
-
----
