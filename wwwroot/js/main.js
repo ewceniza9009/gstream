@@ -1,6 +1,4 @@
-﻿// js/main.js
-
-// --- DOM Elements ---
+﻿// --- DOM Elements ---
 const loginSection = document.getElementById('login-section');
 const streamingSection = document.getElementById('streaming-section');
 const loginButton = document.getElementById('login-button');

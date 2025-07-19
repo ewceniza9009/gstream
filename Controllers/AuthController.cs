@@ -1,5 +1,4 @@
-﻿// Controllers/AuthController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using gstream.Models;
 using gstream.Services;
 
@@ -10,7 +9,6 @@ namespace gstream.Controllers
     public class AuthController : ControllerBase
     {
         private readonly TokenService _tokenService;
-        // In a real app, you would use a database for users.
         private static readonly List<UserModel> Users = new List<UserModel>
         {
             new UserModel { Username = "testuser", Password = "password" }

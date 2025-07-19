@@ -1,6 +1,4 @@
-﻿// js/broadcast.js
-
-// --- DOM Elements ---
+﻿// --- DOM Elements ---
 const loginSection = document.getElementById('login-section');
 const roleSection = document.getElementById('role-section');
 const streamingSection = document.getElementById('streaming-section');

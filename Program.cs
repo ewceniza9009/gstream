@@ -1,14 +1,20 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;     
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using gstream.Hubs;
 using gstream.Services;
+using gstream.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Add services to the container ---
-
-// 1. JWT Authentication Configuration
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -22,8 +28,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
-
-        // Allow token to be passed in query string for SignalR
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -38,34 +42,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 return Task.CompletedTask;
             }
         };
-    });
+    })
+    .AddScheme<ApiKeyAuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+
 
 builder.Services.AddControllers();
-// Enable both SignalR hubs
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<TokenService>();
+builder.Services.AddSingleton<TokenService>();      
 
-// 2. CORS Policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins("null") // For local file testing
+        policy.WithOrigins("null", "https://b2twb5ss-44304.asse.devtunnels.ms")      
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
-
-// --- Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// --- Configure the HTTP request pipeline ---
-
+app.UseForwardedHeaders();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -74,17 +75,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 3. Use CORS and Authentication/Authorization
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-// 4. Map SignalR Hubs
 app.MapHub<StreamingHub>("/streaminghub");
-app.MapHub<BroadcastHub>("/broadcasthub"); // <-- ADD THIS LINE FOR THE NEW HUB
+app.MapHub<BroadcastHub>("/broadcasthub");
 
-// Add this before app.Run() to serve the frontend files
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
