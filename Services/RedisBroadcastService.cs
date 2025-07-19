@@ -1,4 +1,5 @@
 ﻿using StackExchange.Redis;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace gstream.Services
@@ -6,12 +7,14 @@ namespace gstream.Services
     public class RedisBroadcastStateService : IBroadcastStateService
     {
         private readonly IDatabase _db;
+        private readonly IConnectionMultiplexer _redis;     
         private const string BroadcastKeyPrefix = "gstream:broadcast:";
         private const string ConnectionKeyPrefix = "gstream:connection:";
         private static readonly TimeSpan KeyExpiry = TimeSpan.FromHours(4);
 
         public RedisBroadcastStateService(IConnectionMultiplexer redis)
         {
+            _redis = redis;     
             _db = redis.GetDatabase();
         }
 
@@ -70,6 +73,21 @@ namespace gstream.Services
             var role = parts[0];
             var roomId = parts[1];
             return (roomId, role == "broadcaster");
+        }
+
+        public async Task FlushAllBroadcastsAsync()
+        {
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+
+            var broadcastKeys = server.Keys(pattern: $"{BroadcastKeyPrefix}*").ToArray();
+            var connectionKeys = server.Keys(pattern: $"{ConnectionKeyPrefix}*").ToArray();
+
+            var allKeys = broadcastKeys.Concat(connectionKeys).ToArray();
+
+            if (allKeys.Any())
+            {
+                await _db.KeyDeleteAsync(allKeys);
+            }
         }
     }
 }

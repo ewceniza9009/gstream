@@ -2,12 +2,12 @@
 using gstream.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace gstream.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = "ApiKey")]
     public class BroadcastController : ControllerBase
     {
         private readonly TokenService _tokenService;
@@ -20,6 +20,7 @@ namespace gstream.Controllers
         }
 
         [HttpGet("join/{roomId}")]
+        [Authorize(AuthenticationSchemes = "ApiKey")]
         public async Task<IActionResult> JoinBroadcast(string roomId)
         {
             if (!await _stateService.IsBroadcastActiveAsync(roomId))
@@ -30,16 +31,23 @@ namespace gstream.Controllers
             var tempUser = new UserModel { Username = $"consumer-{Guid.NewGuid()}" };
             var temporaryToken = _tokenService.GenerateToken(tempUser);
 
-            // The hub URL is now relative, as the base URL is known by the client
             var response = new
             {
                 roomId = roomId,
-                signalRHubUrl = "/broadcasthub", // Relative path is more robust
+                signalRHubUrl = "/broadcasthub",
                 token = temporaryToken,
                 message = "Broadcast found. Use the provided token to connect to the SignalR hub."
             };
 
             return Ok(response);
+        }
+
+        [HttpPost("flush")]
+        [Authorize(AuthenticationSchemes = "ApiKey")]
+        public async Task<IActionResult> FlushBroadcasts()
+        {
+            await _stateService.FlushAllBroadcastsAsync();
+            return Ok(new { message = "All active broadcasts have been successfully flushed." });
         }
     }
 }

@@ -26,10 +26,11 @@
     const remoteVideo = document.getElementById('remoteVideo');
     const statusDiv = document.getElementById('status');
     const roomIdInput = document.getElementById('room-id');
-
     const cameraSourceRadios = document.querySelectorAll('input[name="cameraSource"]');
     const ipCameraSection = document.getElementById('ip-camera-section');
     const ipCameraUrlInput = document.getElementById('ip-camera-url');
+
+    const flushBroadcastsBtn = document.getElementById('flush-broadcasts-button');
     let jwtToken;
     let signalRConnection;
     let localStream;
@@ -49,6 +50,7 @@
     viewBroadcastBtn.addEventListener('click', viewBroadcast);
     leaveBtn.addEventListener('click', () => window.location.reload());
 
+    flushBroadcastsBtn.addEventListener('click', handleFlushBroadcasts);
     cameraSourceRadios.forEach(radio => {
         radio.addEventListener('change', () => {
             if (document.querySelector('input[name="cameraSource"]:checked').value === 'ip') {
@@ -199,7 +201,7 @@
                 console.error('Could not get user media.', error);
                 throw new Error('Could not access local camera/microphone. Please check permissions.');
             }
-        } else {     
+        } else {
             const url = ipCameraUrlInput.value;
             if (!url) {
                 throw new Error('Please enter the IP Camera stream URL.');
@@ -208,7 +210,7 @@
 
             return new Promise((resolve, reject) => {
                 const ipVideoElement = document.createElement('video');
-                ipVideoElement.setAttribute('crossorigin', 'anonymous');             
+                ipVideoElement.setAttribute('crossorigin', 'anonymous');
                 ipVideoElement.src = url;
 
                 ipVideoElement.addEventListener('loadeddata', () => {
@@ -295,4 +297,39 @@
         remoteVideoContainer.classList.add('hidden');
     }
 
+    async function handleFlushBroadcasts() {
+        const apiKey = prompt("Please enter the Admin API Key to flush all broadcasts:");
+        if (!apiKey) {
+            return;
+        }
+
+        if (!confirm("Are you sure you want to end ALL active broadcasts? This cannot be undone.")) {
+            return;
+        }
+
+        try {
+            statusDiv.textContent = 'Flushing all broadcasts...';
+            const response = await fetch(`${API_URL}/api/broadcast/flush`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Api-Key': apiKey
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to flush broadcasts. Check API Key.');
+            }
+
+            alert(result.message || 'Successfully flushed all broadcasts.');
+            statusDiv.textContent = '';             
+
+        } catch (error) {
+            console.error('Flush failed:', error);
+            alert(`Error: ${error.message}`);
+            statusDiv.textContent = '';             
+        }
+    }
 })();

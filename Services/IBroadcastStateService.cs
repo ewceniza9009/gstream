@@ -9,5 +9,6 @@
         Task AddViewerToBroadcastAsync(string roomId, string connectionId);
         Task RemoveViewerFromBroadcastAsync(string roomId, string connectionId);
         Task<(string? roomId, bool isBroadcaster)> GetConnectionInfoAsync(string connectionId);
+        Task FlushAllBroadcastsAsync();
     }
 }
