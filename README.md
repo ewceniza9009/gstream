@@ -228,5 +228,3 @@ gstream
 ```
 
 ---
-
-Paste this content into your `README.md` file — it will render perfectly with all the headings and sections on GitHub. Let me know if you want badges (build status, license, etc.) added!
