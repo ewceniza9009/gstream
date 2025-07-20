@@ -26,28 +26,37 @@ Of course. Here is the updated `README.md` file, modified to include the new SFU
 <pre>
 gstream
 ├── Authentication
-│   └── ApiKeyAuth.cs
+│   └── ApiKeyAuth.cs             # API key authentication handler
 ├── Controllers
-│   ├── AuthController.cs
-│   └── BroadcastController.cs
+│   ├── AuthController.cs         # User authentication (login)
+│   └── BroadcastController.cs    # Broadcast joining for consumers
 ├── Hubs
-│   ├── BroadcastHub.cs
-│   └── StreamingHub.cs
+│   ├── BroadcastHub.cs           # SignalR hub for broadcasting
+│   └── StreamingHub.cs           # SignalR hub for one-to-one streaming
 ├── Models
-│   └── UserModel.cs
+│   └── UserModel.cs              # User model for authentication
 ├── Properties
-│   └── launchSettings.json
+│   └── launchSettings.json       # Development settings
 ├── Services
-│   ├── IBroadcastStateService.cs
-│   ├── LiveKitService.cs         \# NEW: Handles LiveKit token generation
-│   └── RedisBroadcastService.cs
+│   ├── IBroadcastStateService.cs # Broadcast state interface
+│   └── RedisBroadcastService.cs  # Redis-based state service
 ├── wwwroot
-│   └── ...
+│   ├── js
+│   │   ├── broadcast.js          # Broadcasting client logic
+│   │   ├── consumer.js           # Broadcast consumer logic
+│   │   └── main.js               # One-to-one streaming logic
+│   ├── broadcast.html            # Broadcasting UI
+│   ├── consumer.html             # Broadcast consumer UI
+│   └── index.html                # One-to-one streaming UI
+├── .gitattributes
+├── .gitignore
+├── appsettings.Development.json
 ├── appsettings.json
 ├── gstream.csproj
-├── livekit.yaml                  \# NEW: LiveKit server configuration
+├── gstream.http
+├── gstream.sln
 ├── Program.cs
-└── TokenService.cs
+└── TokenService.cs               # JWT token service
 </pre>
 
 -----
