@@ -4,7 +4,8 @@
     {
         Task<bool> IsBroadcastActiveAsync(string roomId);
         Task<string?> GetBroadcasterConnectionIdAsync(string roomId);
-        Task StartBroadcastAsync(string roomId, string connectionId);
+        Task<string?> GetBroadcastTypeAsync(string roomId);
+        Task StartBroadcastAsync(string roomId, string connectionId, string broadcastType);
         Task EndBroadcastAsync(string roomId, string connectionId);
         Task AddViewerToBroadcastAsync(string roomId, string connectionId);
         Task RemoveViewerFromBroadcastAsync(string roomId, string connectionId);

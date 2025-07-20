@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
-using gstream.Services;    
+using gstream.Services;
 
 namespace gstream.Hubs
 {
@@ -15,16 +15,27 @@ namespace gstream.Hubs
             _stateService = stateService;
         }
 
-        public async Task StartBroadcast(string roomId)
+        public async Task StartBroadcast(string roomId, string broadcastType)
         {
             if (await _stateService.IsBroadcastActiveAsync(roomId))
             {
                 await Clients.Caller.SendAsync("BroadcastExists");
                 return;
             }
-            await _stateService.StartBroadcastAsync(roomId, Context.ConnectionId);
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-            await Clients.Caller.SendAsync("BroadcastStarted");
+            if (broadcastType == "mesh")
+            {
+                await _stateService.StartBroadcastAsync(roomId, Context.ConnectionId, broadcastType);
+                await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
+                await Clients.Caller.SendAsync("BroadcastStarted");
+            }
+        }
+
+        public async Task SendChatMessage(string roomId, string message)
+        {
+            if (string.IsNullOrEmpty(roomId) || string.IsNullOrEmpty(message)) return;
+
+            var username = Context.User.Identity?.Name ?? $"User-{Context.ConnectionId.Substring(0, 5)}";
+            await Clients.Group(roomId).SendAsync("ReceiveChatMessage", username, message);
         }
 
         public async Task ViewBroadcast(string roomId)
@@ -54,7 +65,6 @@ namespace gstream.Hubs
         {
             await Clients.Client(targetConnectionId).SendAsync("ReceiveIceCandidate", candidate);
         }
-
 
         public override async Task OnDisconnectedAsync(System.Exception? exception)
         {

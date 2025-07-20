@@ -15,11 +15,31 @@
         #localVideo {
             transform: scaleX(-1);
         }
+
+        .chat-box {
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .chat-message {
+            background-color: #374151;
+        }
+
+            .chat-message.self {
+                background-color: #1d4ed8;
+                align-self: flex-end;
+            }
+
+            .chat-message.other {
+                align-self: flex-start;
+            }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
 
-    <div id="app-container" class="w-full max-w-4xl p-4 md:p-8">
+    <div id="app-container" class="w-full max-w-6xl p-4 md:p-8">
         <h1 class="text-4xl font-bold text-center mb-2 text-cyan-400">GSTREAM</h1>
         <h2 class="text-xl font-light text-center mb-6 text-gray-300">One-to-Many Broadcast</h2>
 
@@ -35,8 +55,22 @@
 
         <div id="role-section" class="hidden">
             <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto">
-                <h2 class="text-2xl font-semibold mb-4 text-center">Choose Your Role</h2>
-                <input type="text" id="room-id" placeholder="Enter a Room ID to start or join" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-4">
+                <h2 class="text-2xl font-semibold mb-4 text-center">Configure Your Broadcast</h2>
+                <input type="text" id="room-id" placeholder="Enter a Room ID" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-4">
+
+                <div class="my-4">
+                    <label class="block text-gray-400 mb-2">Select Broadcast Type:</label>
+                    <div class="flex items-center space-x-6">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="broadcastType" value="sfu" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
+                            <span class="ml-2 text-white">SFU (for many viewers)</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="broadcastType" value="mesh" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
+                            <span class="ml-2 text-white">Mesh (for 1-2 viewers)</span>
+                        </label>
+                    </div>
+                </div>
 
                 <div class="my-4">
                     <label class="block text-gray-400 mb-2">Select Camera Source:</label>
@@ -56,6 +90,7 @@
                     <input type="text" id="ip-camera-url" placeholder="Enter IP Cam Stream URL (e.g., MJPEG)" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                     <p class="text-xs text-gray-500 mt-1">Note: URL must be a browser-compatible stream like MJPEG or HLS.</p>
                 </div>
+
                 <div class="flex flex-col md:flex-row gap-4">
                     <button id="start-broadcast-button" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Start Broadcast</button>
                     <button id="view-broadcast-button" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">View Broadcast</button>
@@ -74,20 +109,32 @@
                 <button id="leave-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300">Leave</button>
             </div>
 
-            <div class="flex justify-center">
-                <div id="local-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full max-w-2xl">
-                    <h3 class="text-xl font-semibold mb-2 text-center">My Camera</h3>
-                    <video id="localVideo" autoplay playsinline muted class="w-full rounded-md bg-black"></video>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2">
+                    <div id="local-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full">
+                        <h3 class="text-xl font-semibold mb-2 text-center">My Camera</h3>
+                        <video id="localVideo" autoplay playsinline muted class="w-full rounded-md bg-black"></video>
+                    </div>
+                    <div id="remote-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full max-w-2xl">
+                        <h3 class="text-xl font-semibold mb-2 text-center">Live Broadcast</h3>
+                        <video id="remoteVideo" autoplay playsinline class="w-full rounded-md bg-black"></video>
+                    </div>
                 </div>
-                <div id="remote-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full max-w-2xl">
-                    <h3 class="text-xl font-semibold mb-2 text-center">Live Broadcast</h3>
-                    <video id="remoteVideo" autoplay playsinline class="w-full rounded-md bg-black"></video>
+
+                <div id="chat-section" class="md:col-span-1 bg-gray-800 p-4 rounded-lg shadow-xl flex-col hidden h-full">
+                    <h3 class="text-xl font-semibold mb-2 text-center">Live Chat</h3>
+                    <div id="chat-messages" class="chat-box flex-grow mb-4 p-2 bg-gray-900 rounded"></div>
+                    <div class="flex">
+                        <input type="text" id="chat-input" placeholder="Type a message..." class="flex-grow bg-gray-700 text-white p-2 rounded-l-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <button id="chat-send-button" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-r-md">Send</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.2.0/dist/livekit-client.umd.min.js"></script>
     <script src="js/broadcast.js"></script>
 </body>
 </html>

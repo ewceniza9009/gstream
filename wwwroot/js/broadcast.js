@@ -29,14 +29,21 @@
     const cameraSourceRadios = document.querySelectorAll('input[name="cameraSource"]');
     const ipCameraSection = document.getElementById('ip-camera-section');
     const ipCameraUrlInput = document.getElementById('ip-camera-url');
-
     const flushBroadcastsBtn = document.getElementById('flush-broadcasts-button');
+    const chatSection = document.getElementById('chat-section');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendButton = document.getElementById('chat-send-button');
+
     let jwtToken;
     let signalRConnection;
     let localStream;
     let peerConnections = {};
     let currentRoomId;
     let userRole;
+    let livekitRoom;
+    let broadcastType;
+    let myUsername = 'Broadcaster';
 
     const iceServers = {
         iceServers: [
@@ -47,25 +54,24 @@
 
     loginButton.addEventListener('click', handleLogin);
     startBroadcastBtn.addEventListener('click', startBroadcast);
-    viewBroadcastBtn.addEventListener('click', viewBroadcast);
-    leaveBtn.addEventListener('click', () => window.location.reload());
-
+    viewBroadcastBtn.addEventListener('click', viewBroadcast);                                 
+    leaveBtn.addEventListener('click', handleLeave);
     flushBroadcastsBtn.addEventListener('click', handleFlushBroadcasts);
+    chatSendButton.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+    });
     cameraSourceRadios.forEach(radio => {
         radio.addEventListener('change', () => {
-            if (document.querySelector('input[name="cameraSource"]:checked').value === 'ip') {
-                ipCameraSection.classList.remove('hidden');
-            } else {
-                ipCameraSection.classList.add('hidden');
-            }
+            ipCameraSection.classList.toggle('hidden', document.querySelector('input[name="cameraSource"]:checked').value !== 'ip');
         });
     });
+
     async function handleLogin() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const loginError = document.getElementById('login-error');
         loginError.textContent = '';
-
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
@@ -75,12 +81,135 @@
             if (!response.ok) throw new Error('Invalid credentials');
             const data = await response.json();
             jwtToken = data.token;
+            myUsername = username;
             loginSection.classList.add('hidden');
             roleSection.classList.remove('hidden');
         } catch (error) {
             loginError.textContent = 'Login failed. Please check your credentials.';
             console.error('Login failed:', error);
         }
+    }
+
+    async function startBroadcast() {
+        userRole = 'broadcaster';
+        currentRoomId = roomIdInput.value;
+        broadcastType = document.querySelector('input[name="broadcastType"]:checked').value;
+        if (!currentRoomId) {
+            alert('Please enter a Room ID.');
+            return;
+        }
+
+        try {
+            localStream = await getCameraStream();
+            localVideo.srcObject = localStream;
+            switchToStreamingView();
+            if (broadcastType === 'sfu') {
+                await startSfuBroadcast();
+            } else {
+                await startMeshBroadcast();
+            }
+        } catch (error) {
+            console.error('Could not start broadcast.', error);
+            alert(error.message || 'An unknown error occurred while starting the broadcast.');
+            window.location.reload();
+        }
+    }
+
+    async function viewBroadcast() {
+        userRole = 'viewer';
+        currentRoomId = roomIdInput.value;
+        if (!currentRoomId) {
+            alert('Please enter a Room ID to view.');
+            return;
+        }
+        alert("Viewing is handled on the consumer page. This is for local mesh testing only.");
+        if (!await initializeSignalR()) {
+            alert('Failed to connect to server.');
+            return;
+        }
+        switchToStreamingView();
+        await signalRConnection.invoke('ViewBroadcast', currentRoomId);
+        statusDiv.textContent = `Attempting to view broadcast in room: ${currentRoomId}`;
+    }
+
+    async function startMeshBroadcast() {
+        if (!await initializeSignalR()) {
+            throw new Error('Failed to connect to server for mesh broadcast.');
+        }
+        await signalRConnection.invoke('StartBroadcast', currentRoomId, 'mesh');
+        statusDiv.textContent = `Waiting for viewers in room (Mesh Mode): ${currentRoomId}`;
+    }
+
+    async function startSfuBroadcast() {
+        statusDiv.textContent = 'Initializing SFU broadcast...';
+        try {
+            const response = await fetch(`${API_URL}/api/broadcast/start/sfu/${currentRoomId}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Failed to initialize SFU broadcast.');
+            }
+            const { liveKitUrl, token, username } = await response.json();
+            myUsername = username;
+
+            livekitRoom = new LivekitClient.Room();
+            await livekitRoom.connect(liveKitUrl, token);
+            statusDiv.textContent = `Broadcasting live to room: ${currentRoomId} (SFU)`;
+
+            if (localStream.getVideoTracks().length > 0) {
+                await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0]);
+            }
+            if (localStream.getAudioTracks().length > 0) {
+                await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
+            }
+
+            livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
+                const decoder = new TextDecoder();
+                const message = JSON.parse(decoder.decode(payload));
+                displayChatMessage(message.username, message.text, false);
+            });
+
+        } catch (error) {
+            console.error('SFU broadcast failed:', error);
+            throw error;
+        }
+    }
+
+    async function handleLeave() {
+        if (livekitRoom) {
+            await livekitRoom.disconnect();
+        }
+        if (signalRConnection) {
+            await signalRConnection.stop();
+        }
+        window.location.reload();
+    }
+
+    function sendChatMessage() {
+        const text = chatInput.value;
+        if (!text) return;
+
+        if (broadcastType === 'sfu' && livekitRoom) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(JSON.stringify({ username: myUsername, text }));
+            livekitRoom.localParticipant.publishData(data, LivekitClient.DataPacket_Kind.RELIABLE);
+            displayChatMessage(myUsername, text, true);
+        } else if (broadcastType === 'mesh' && signalRConnection) {
+            signalRConnection.invoke('SendChatMessage', currentRoomId, text);
+        }
+        chatInput.value = '';
+    }
+
+    function displayChatMessage(user, message, isSelf) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('p-2', 'rounded-lg', 'mb-2', 'chat-message', 'max-w-xs', 'w-fit');
+        msgDiv.classList.toggle('self', isSelf);
+        msgDiv.classList.toggle('other', !isSelf);
+        msgDiv.innerHTML = `<span class="font-bold block">${isSelf ? "You" : user}</span> ${message}`;
+
+        chatMessages.insertBefore(msgDiv, chatMessages.firstChild);
     }
 
     async function initializeSignalR() {
@@ -91,7 +220,6 @@
 
         signalRConnection.on('NewViewer', async (viewerId) => {
             statusDiv.textContent = `New viewer joined. Setting up connection...`;
-            console.log(`New viewer connected: ${viewerId}`);
             const pc = createPeerConnection(viewerId);
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
@@ -99,41 +227,24 @@
         });
 
         signalRConnection.on('ReceiveAnswerFromViewer', async (answer, viewerId) => {
-            console.log(`Received answer from viewer: ${viewerId}`);
             const pc = peerConnections[viewerId];
-            if (pc) {
-                await pc.setRemoteDescription(new RTCSessionDescription(answer));
-            }
+            if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        });
+
+        signalRConnection.on('ReceiveChatMessage', (user, message) => {
+            displayChatMessage(user, message, user === myUsername);
         });
 
         signalRConnection.on('ViewerLeft', (viewerId) => {
-            console.log(`Viewer left: ${viewerId}`);
             if (peerConnections[viewerId]) {
                 peerConnections[viewerId].close();
                 delete peerConnections[viewerId];
             }
         });
 
-        signalRConnection.on('ReceiveOfferFromBroadcaster', async (offer, broadcasterId) => {
-            statusDiv.textContent = 'Receiving stream from broadcaster...';
-            console.log('Received offer from broadcaster');
-            const pc = createPeerConnection(broadcasterId);
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            await signalRConnection.invoke('SendAnswerToBroadcaster', broadcasterId, answer);
-        });
-
         signalRConnection.on('ReceiveIceCandidate', async (candidate) => {
-            console.log('Received ICE candidate');
-            const pc = Object.values(peerConnections)[0];
-            if (pc) {
-                try {
-                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                } catch (e) {
-                    console.error('Error adding received ice candidate', e);
-                }
-            }
+            const pc = Object.values(peerConnections)[0];                 
+            if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
         });
 
         signalRConnection.on('BroadcastEnded', () => {
@@ -141,20 +252,14 @@
             window.location.reload();
         });
 
-        signalRConnection.on('NoBroadcastFound', () => {
-            alert('Error: No broadcast found in this room.');
-            switchToRoleSelection();
-        });
-
         signalRConnection.on('BroadcastExists', () => {
             alert('Error: A broadcast is already active in this room.');
             switchToRoleSelection();
         });
 
-
         try {
             await signalRConnection.start();
-            console.log('SignalR Connected.');
+            console.log('SignalR Connected for Mesh.');
             return true;
         } catch (error) {
             console.error('SignalR Connection Error: ', error);
@@ -165,36 +270,23 @@
     function createPeerConnection(peerId) {
         const pc = new RTCPeerConnection(iceServers);
         peerConnections[peerId] = pc;
-
         pc.onicecandidate = event => {
-            if (event.candidate) {
-                signalRConnection.invoke('SendIceCandidate', peerId, event.candidate);
-            }
+            if (event.candidate) signalRConnection.invoke('SendIceCandidate', peerId, event.candidate);
         };
-
         if (userRole === 'broadcaster') {
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
         } else {
-            pc.ontrack = event => {
-                remoteVideo.srcObject = event.streams[0];
-            };
+            pc.ontrack = event => { remoteVideo.srcObject = event.streams[0]; };
         }
-
         pc.onconnectionstatechange = () => {
-            console.log(`Connection state with ${peerId}: ${pc.connectionState}`);
-            if (pc.connectionState === 'connected') {
-                statusDiv.textContent = userRole === 'broadcaster' ? 'Broadcasting live!' : 'Connected to broadcast!';
-            }
+            if (pc.connectionState === 'connected') statusDiv.textContent = 'Broadcasting live! (Mesh)';
         };
-
         return pc;
     }
 
     async function getCameraStream() {
         const selectedSource = document.querySelector('input[name="cameraSource"]:checked').value;
-
         if (selectedSource === 'local') {
-            console.log('Using local webcam.');
             try {
                 return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             } catch (error) {
@@ -203,86 +295,27 @@
             }
         } else {
             const url = ipCameraUrlInput.value;
-            if (!url) {
-                throw new Error('Please enter the IP Camera stream URL.');
-            }
-            console.log(`Attempting to use IP camera stream from: ${url}`);
-
+            if (!url) throw new Error('Please enter the IP Camera stream URL.');
             return new Promise((resolve, reject) => {
                 const ipVideoElement = document.createElement('video');
                 ipVideoElement.setAttribute('crossorigin', 'anonymous');
                 ipVideoElement.src = url;
-
                 ipVideoElement.addEventListener('loadeddata', () => {
-                    console.log('IP Camera stream data loaded.');
                     ipVideoElement.play().then(() => {
-                        let stream;
-                        if (typeof ipVideoElement.captureStream === 'function') {
-                            stream = ipVideoElement.captureStream();
-                        } else {
-                            reject(new Error('captureStream API is not supported by this browser.'));
-                            return;
-                        }
-                        console.log('Successfully captured stream from IP camera.');
-                        resolve(stream);
-                    }).catch(e => {
-                        reject(new Error(`Could not play the IP Camera stream. Error: ${e.message}`));
-                    });
+                        let stream = ipVideoElement.captureStream ? ipVideoElement.captureStream() : null;
+                        if (stream) resolve(stream);
+                        else reject(new Error('captureStream API is not supported.'));
+                    }).catch(e => reject(new Error(`Could not play the IP Camera stream. Error: ${e.message}`)));
                 });
-
-                ipVideoElement.addEventListener('error', (e) => {
-                    console.error('Error loading IP Camera stream.', e);
-                    reject(new Error('Could not load the IP Camera stream. Check the URL, CORS policy, and ensure it is a browser-compatible format.'));
-                });
+                ipVideoElement.addEventListener('error', (e) => reject(new Error('Could not load the IP Camera stream.')));
             });
         }
-    }
-    async function startBroadcast() {
-        userRole = 'broadcaster';
-        currentRoomId = roomIdInput.value;
-        if (!currentRoomId) {
-            alert('Please enter a Room ID.');
-            return;
-        }
-
-        if (!await initializeSignalR()) {
-            alert('Failed to connect to server.');
-            return;
-        }
-
-        try {
-            localStream = await getCameraStream();
-
-            localVideo.srcObject = localStream;
-            switchToStreamingView();
-            await signalRConnection.invoke('StartBroadcast', currentRoomId);
-            statusDiv.textContent = `Waiting for viewers in room: ${currentRoomId}`;
-        } catch (error) {
-            console.error('Could not start broadcast.', error);
-            alert(error.message || 'An unknown error occurred while starting the broadcast.');
-        }
-    }
-    async function viewBroadcast() {
-        userRole = 'viewer';
-        currentRoomId = roomIdInput.value;
-        if (!currentRoomId) {
-            alert('Please enter a Room ID.');
-            return;
-        }
-
-        if (!await initializeSignalR()) {
-            alert('Failed to connect to server.');
-            return;
-        }
-
-        switchToStreamingView();
-        await signalRConnection.invoke('ViewBroadcast', currentRoomId);
-        statusDiv.textContent = `Attempting to view broadcast in room: ${currentRoomId}`;
     }
 
     function switchToStreamingView() {
         roleSection.classList.add('hidden');
         streamingSection.classList.remove('hidden');
+        chatSection.classList.remove('hidden');
         if (userRole === 'broadcaster') {
             localVideoContainer.classList.remove('hidden');
         } else {
@@ -295,41 +328,26 @@
         roleSection.classList.remove('hidden');
         localVideoContainer.classList.add('hidden');
         remoteVideoContainer.classList.add('hidden');
+        chatSection.classList.add('hidden');
     }
 
     async function handleFlushBroadcasts() {
         const apiKey = prompt("Please enter the Admin API Key to flush all broadcasts:");
-        if (!apiKey) {
-            return;
-        }
-
-        if (!confirm("Are you sure you want to end ALL active broadcasts? This cannot be undone.")) {
-            return;
-        }
-
+        if (!apiKey || !confirm("Are you sure you want to end ALL active broadcasts?")) return;
         try {
             statusDiv.textContent = 'Flushing all broadcasts...';
             const response = await fetch(`${API_URL}/api/broadcast/flush`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Api-Key': apiKey
-                }
+                headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey }
             });
-
             const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to flush broadcasts. Check API Key.');
-            }
-
+            if (!response.ok) throw new Error(result.message || 'Failed to flush broadcasts.');
             alert(result.message || 'Successfully flushed all broadcasts.');
-            statusDiv.textContent = '';             
-
         } catch (error) {
             console.error('Flush failed:', error);
             alert(`Error: ${error.message}`);
-            statusDiv.textContent = '';             
+        } finally {
+            statusDiv.textContent = '';
         }
     }
 })();

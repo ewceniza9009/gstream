@@ -2,6 +2,7 @@
 using gstream.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 
 namespace gstream.Controllers
@@ -12,11 +13,13 @@ namespace gstream.Controllers
     {
         private readonly TokenService _tokenService;
         private readonly IBroadcastStateService _stateService;
+        private readonly LiveKitService _liveKitService;
 
-        public BroadcastController(TokenService tokenService, IBroadcastStateService stateService)
+        public BroadcastController(TokenService tokenService, IBroadcastStateService stateService, LiveKitService liveKitService)
         {
             _tokenService = tokenService;
             _stateService = stateService;
+            _liveKitService = liveKitService;
         }
 
         [HttpGet("join/{roomId}")]
@@ -28,19 +31,59 @@ namespace gstream.Controllers
                 return NotFound(new { message = "No active broadcast found for the specified room ID." });
             }
 
-            var tempUser = new UserModel { Username = $"consumer-{Guid.NewGuid()}" };
-            var temporaryToken = _tokenService.GenerateToken(tempUser);
+            var broadcastType = await _stateService.GetBroadcastTypeAsync(roomId);
 
-            var response = new
+            if (broadcastType == "sfu")
             {
-                roomId = roomId,
-                signalRHubUrl = "/broadcasthub",
-                token = temporaryToken,
-                message = "Broadcast found. Use the provided token to connect to the SignalR hub."
-            };
-
-            return Ok(response);
+                var consumerIdentity = $"consumer-{Guid.NewGuid()}";
+                var liveKitToken = _liveKitService.GenerateToken(roomId, consumerIdentity, isBroadcaster: false);
+                return Ok(new
+                {
+                    broadcastType = "sfu",
+                    roomId,
+                    liveKitUrl = _liveKitService.GetLiveKitUrl(),
+                    token = liveKitToken,
+                    message = "SFU broadcast found. Use the LiveKit token to connect."
+                });
+            }
+            else           
+            {
+                var tempUser = new UserModel { Username = $"consumer-{Guid.NewGuid()}" };
+                var temporaryToken = _tokenService.GenerateToken(tempUser);
+                return Ok(new
+                {
+                    broadcastType = "mesh",
+                    roomId,
+                    signalRHubUrl = "/broadcasthub",
+                    token = temporaryToken,
+                    message = "Mesh broadcast found. Use the provided JWT to connect to the SignalR hub."
+                });
+            }
         }
+
+        [HttpPost("start/sfu/{roomId}")]
+        [Authorize]      
+        public async Task<IActionResult> StartSfuBroadcast(string roomId)
+        {
+            if (await _stateService.IsBroadcastActiveAsync(roomId))
+            {
+                return Conflict(new { message = "A broadcast is already active in this room." });
+            }
+
+            var broadcasterIdentity = User.Identity?.Name ?? $"broadcaster-{Guid.NewGuid()}";
+
+            await _stateService.StartBroadcastAsync(roomId, broadcasterIdentity, "sfu");
+
+            var liveKitToken = _liveKitService.GenerateToken(roomId, broadcasterIdentity, isBroadcaster: true);
+
+            return Ok(new
+            {
+                liveKitUrl = _liveKitService.GetLiveKitUrl(),
+                token = liveKitToken,
+                username = broadcasterIdentity
+            });
+        }
+
 
         [HttpPost("flush")]
         [Authorize(AuthenticationSchemes = "ApiKey")]
