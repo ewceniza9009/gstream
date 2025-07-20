@@ -106,21 +106,14 @@
 
         livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
             console.log('Track Subscribed:', track.kind, 'Track ID:', track.sid, 'Publication ID:', publication.sid);
-            qualityControls.innerHTML = ''; // Clear previous controls
+            qualityControls.innerHTML = '';             
 
             if (track.kind === 'video') {
                 const element = track.attach();
                 remoteVideo.srcObject = element.srcObject;
 
-                // For LiveKit v2+, you interact with the publication to set subscription quality.
-                // The most robust way to offer quality controls is to present the standard
-                // LiveKit qualities (HIGH, MEDIUM, LOW) and let the SDK negotiate.
-                // We'll create buttons for these standard qualities.
-
-                // A slight delay might still be useful to ensure the track is fully active.
                 setTimeout(() => {
                     if (publication.kind === 'video' && publication.track) {
-                        // Define the standard LiveKit video qualities
                         const qualities = [
                             { label: 'High', value: LivekitClient.VideoQuality.HIGH },
                             { label: 'Medium', value: LivekitClient.VideoQuality.MEDIUM },
@@ -136,10 +129,8 @@
                             button.onclick = async () => {
                                 console.log(`Setting video quality for ${publication.sid} to: ${q.label} (${q.value})`);
                                 try {
-                                    // This is the correct method for v2+ to request a specific quality
                                     await publication.setVideoQuality(q.value);
 
-                                    // Visual feedback: Highlight the active button
                                     Array.from(qualityControls.children).forEach(btn => {
                                         btn.classList.remove('bg-cyan-700');
                                         btn.classList.add('bg-gray-600');
@@ -148,26 +139,22 @@
                                     button.classList.add('bg-cyan-700');
                                 } catch (e) {
                                     console.error(`Failed to set video quality to ${q.label}:`, e);
-                                    // Optionally display an error to the user
                                 }
                             };
                             qualityControls.appendChild(button);
                         });
 
-                        // Select the highest quality by default if buttons were added
                         if (qualityControls.children.length > 0) {
-                            // Programmatically click the first button (which should be 'High')
                             qualityControls.children[0].click();
                         }
                     } else {
                         console.warn("Subscribed track is not a video publication, or publication.track is null. Cannot show quality controls.");
                         qualityControls.innerHTML = '<span class="text-gray-400 text-sm">Quality controls not applicable.</span>';
                     }
-                }, 1000); // Reduced delay slightly, but can be adjusted
+                }, 1000);                             
             } else if (track.kind === 'audio') {
                 console.log('Audio track subscribed.');
                 const element = track.attach();
-                // Attaching audio element. It won't be visually part of the video but will play.
                 remoteVideo.appendChild(element);
             }
         });
@@ -271,7 +258,7 @@
         msgDiv.classList.toggle('other', !isSelf);
         msgDiv.innerHTML = `<span class="font-bold block">${isSelf ? "You" : user}</span> ${message}`;
         chatMessages.insertBefore(msgDiv, chatMessages.firstChild);
-        chatMessages.scrollTop = chatMessages.scrollHeight; // Ensure chat scrolls to the bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;                         
     }
 
     function switchToStreamingView() {
