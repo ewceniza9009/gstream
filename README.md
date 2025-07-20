@@ -23,7 +23,7 @@ Of course. Here is the updated `README.md` file, modified to include the new SFU
 
 ## 📁 Project Structure
 
-\<pre\>
+<pre>
 gstream
 ├── Authentication
 │   └── ApiKeyAuth.cs
@@ -48,7 +48,7 @@ gstream
 ├── livekit.yaml                  \# NEW: LiveKit server configuration
 ├── Program.cs
 └── TokenService.cs
-\</pre\>
+</pre>
 
 -----
 
