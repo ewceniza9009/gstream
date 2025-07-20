@@ -1,0 +1,4 @@
+port: 7880
+keys:
+  # You can make this key anything you want
+  APIKeyForGStream: ThisIsMyNewVerySecureSecretKeyForLiveKit32
