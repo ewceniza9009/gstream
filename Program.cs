@@ -109,7 +109,7 @@ catch (System.Reflection.ReflectionTypeLoadException ex)
             Console.WriteLine("INNER: " + loaderEx.InnerException.Message);
     }
 
-    throw; // rethrow to keep existing behavior
+    throw;      
 }
 app.UseDefaultFiles();
 app.UseStaticFiles();

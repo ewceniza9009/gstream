@@ -115,7 +115,6 @@ namespace gstream.Controllers
                 return NotFound(new { message = "No active broadcast to record." });
             }
 
-            // This file path must be accessible by your LiveKit Egress container
             var filePath = $"/mnt/recordings/{roomId}-{DateTime.UtcNow:yyyyMMddHHmmss}.mp4";
 
             try
@@ -124,7 +123,6 @@ namespace gstream.Controllers
                 var egressInfo = await egressClient.StartRoomCompositeEgress(new RoomCompositeEgressRequest
                 {
                     RoomName = roomId,
-                    // Use the 'File' property for file outputs
                     File = new EncodedFileOutput
                     {
                         FileType = EncodedFileType.Mp4,
