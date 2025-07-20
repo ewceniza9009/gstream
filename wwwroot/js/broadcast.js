@@ -34,6 +34,7 @@
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatSendButton = document.getElementById('chat-send-button');
+    const recordBtn = document.getElementById('record-button');
 
     let jwtToken;
     let signalRConnection;
@@ -54,7 +55,7 @@
 
     loginButton.addEventListener('click', handleLogin);
     startBroadcastBtn.addEventListener('click', startBroadcast);
-    viewBroadcastBtn.addEventListener('click', viewBroadcast);                                 
+    viewBroadcastBtn.addEventListener('click', viewBroadcast);
     leaveBtn.addEventListener('click', handleLeave);
     flushBroadcastsBtn.addEventListener('click', handleFlushBroadcasts);
     chatSendButton.addEventListener('click', sendChatMessage);
@@ -66,6 +67,28 @@
             ipCameraSection.classList.toggle('hidden', document.querySelector('input[name="cameraSource"]:checked').value !== 'ip');
         });
     });
+    recordBtn.addEventListener('click', async () => {
+        if (!currentRoomId) {
+            alert("You must start a broadcast before you can record.");
+            return;
+        }
+        if (!confirm("Are you sure you want to start recording this broadcast?")) return;
+        try {
+            const response = await fetch(`${API_URL}/api/broadcast/record/start/${currentRoomId}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${jwtToken}` }
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to start recording.');
+            alert(result.message);
+            recordBtn.disabled = true;
+            recordBtn.textContent = 'Recording...';
+        } catch (error) {
+            console.error('Recording error:', error);
+            alert(`Could not start recording: ${error.message}`);
+        }
+    });
+
 
     async function handleLogin() {
         const username = document.getElementById('username').value;
@@ -159,7 +182,11 @@
             statusDiv.textContent = `Broadcasting live to room: ${currentRoomId} (SFU)`;
 
             if (localStream.getVideoTracks().length > 0) {
-                await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0]);
+                const videoTrack = localStream.getVideoTracks()[0];
+                await livekitRoom.localParticipant.publishTrack(videoTrack, {
+                    simulcast: true,
+                    videoCodec: 'vp8'
+                });
             }
             if (localStream.getAudioTracks().length > 0) {
                 await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
@@ -243,7 +270,7 @@
         });
 
         signalRConnection.on('ReceiveIceCandidate', async (candidate) => {
-            const pc = Object.values(peerConnections)[0];                 
+            const pc = Object.values(peerConnections)[0];
             if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
         });
 

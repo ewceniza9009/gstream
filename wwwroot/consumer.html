@@ -42,6 +42,7 @@
         <div id="api-key-section" class="bg-gray-800 p-8 rounded-lg shadow-xl mx-auto max-w-lg">
             <h2 class="text-2xl font-semibold mb-4 text-center">Connect to gstream</h2>
             <div class="space-y-4">
+                <input type="text" id="username" placeholder="Enter Your Display Name" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                 <input type="text" id="api-key" placeholder="Enter Your API Key" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                 <input type="text" id="room-id" placeholder="Enter the Room ID of the broadcast" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                 <button id="join-stream-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Find and View Stream</button>
@@ -58,6 +59,7 @@
                 <div class="md:col-span-2 bg-gray-800 p-4 rounded-lg shadow-xl">
                     <h3 class="text-xl font-semibold mb-2 text-center">Live Broadcast</h3>
                     <video id="remoteVideo" autoplay playsinline class="w-full rounded-md bg-black"></video>
+                    <div id="quality-controls" class="flex justify-center space-x-2 mt-4"></div>
                 </div>
 
                 <div id="chat-section" class="md:col-span-1 bg-gray-800 p-4 rounded-lg shadow-xl flex-col hidden h-full">

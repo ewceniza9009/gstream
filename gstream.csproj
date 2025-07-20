@@ -4,18 +4,34 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-	  <UserSecretsId>7f215c30-3034-44b4-93ff-92daedeefb4f</UserSecretsId>
-  </PropertyGroup>
+		<UserSecretsId>7f215c30-3034-44b4-93ff-92daedeefb4f</UserSecretsId>
+	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Livekit.Server.Sdk.Dotnet" Version="1.0.10" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.7" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.7" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.7" />
+
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.12.1" />
+
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
+
 		<PackageReference Include="StackExchange.Redis" Version="2.8.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.3" />
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.3" />
+
+		<PackageReference Include="Google.Protobuf" Version="3.31.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="LiveKit\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="LivekitApi">
+			<HintPath>LiveKit\LivekitApi.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>

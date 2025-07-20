@@ -30,6 +30,12 @@ namespace gstream.Services
 
         public string GetLiveKitUrl() => _liveKitHost;
 
+        public EgressServiceClient CreateEgressClient()
+        {
+            var apiUrl = GetLiveKitUrl().Replace("wss://", "http://").Replace("ws://", "http://");
+            return new EgressServiceClient(apiUrl, _apiKey, _apiSecret);
+        }
+
         public string GenerateToken(string roomName, string participantIdentity, bool isBroadcaster = false)
         {
             var grant = new VideoGrants

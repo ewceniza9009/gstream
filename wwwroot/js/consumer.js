@@ -21,17 +21,18 @@
     const statusDiv = document.getElementById('status');
     const roomIdInput = document.getElementById('room-id');
     const apiKeyInput = document.getElementById('api-key');
+    const usernameInput = document.getElementById('username');
     const chatSection = document.getElementById('chat-section');
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatSendButton = document.getElementById('chat-send-button');
 
     let signalRConnection;
-    let peerConnection;             
+    let peerConnection;
     let currentRoomId;
     let livekitRoom;
     let broadcastType;
-    let myUsername = `User-${Math.floor(Math.random() * 1000)}`;
+    let myUsername;
 
     const iceServers = {
         iceServers: [
@@ -50,8 +51,10 @@
     async function handleJoinStream() {
         currentRoomId = roomIdInput.value;
         const apiKey = apiKeyInput.value;
-        if (!currentRoomId || !apiKey) {
-            alert('Please enter both an API Key and a Room ID.');
+        const username = usernameInput.value;
+
+        if (!currentRoomId || !apiKey || !username) {
+            alert('Please enter a Display Name, API Key, and Room ID.');
             return;
         }
 
@@ -60,8 +63,12 @@
 
         try {
             const response = await fetch(`${API_URL}/api/broadcast/join/${currentRoomId}`, {
-                method: 'GET',
-                headers: { 'X-Api-Key': apiKey }
+                method: 'POST',
+                headers: {
+                    'X-Api-Key': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username })
             });
 
             if (!response.ok) {
@@ -71,6 +78,7 @@
 
             const connectionDetails = await response.json();
             broadcastType = connectionDetails.broadcastType;
+            myUsername = connectionDetails.username || username;
 
             if (broadcastType === 'sfu') {
                 await connectToSfuStream(connectionDetails);
@@ -96,11 +104,34 @@
         livekitRoom = new LivekitClient.Room();
 
         livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            if (track.kind === 'video' || track.kind === 'audio') {
+            const qualityControls = document.getElementById('quality-controls');
+            qualityControls.innerHTML = ''; // Clear previous controls
+
+            if (track.kind === 'video') {
                 const element = track.attach();
-                if (track.kind === 'video') {
-                    remoteVideo.srcObject = element.srcObject;
-                }
+                remoteVideo.srcObject = element.srcObject;
+
+                setTimeout(() => {
+                    const layers = publication.videoTrack?.getLayers();
+                    if (layers && layers.length > 1) {
+                        const qualityLabels = ['High', 'Medium', 'Low'];
+                        layers.forEach((layer, index) => {
+                            const button = document.createElement('button');
+                            button.textContent = qualityLabels[index] || `Layer ${index}`;
+                            button.className = 'bg-gray-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded-md text-sm';
+                            button.onclick = () => {
+                                publication.setEnabled(false);
+                                publication.setVideoQuality(layer.quality);
+                                publication.setEnabled(true);
+                            };
+                            qualityControls.appendChild(button);
+                        });
+                    }
+                }, 3000);
+
+            } else if (track.kind === 'audio') {
+                const element = track.attach();
+                remoteVideo.appendChild(element);
             }
         });
 

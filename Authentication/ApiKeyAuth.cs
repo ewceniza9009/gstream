@@ -18,8 +18,7 @@ namespace gstream.Authentication
             IOptionsMonitor<ApiKeyAuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            ISystemClock clock,
-            IConfiguration configuration) : base(options, logger, encoder, clock)
+            IConfiguration configuration) : base(options, logger, encoder) // Remove clock from base call
         {
             _configuration = configuration;
         }

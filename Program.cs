@@ -56,7 +56,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
-    options.Configuration.ChannelPrefix = "gstream:";
+    options.Configuration.ChannelPrefix = RedisChannel.Literal("gstream:");
 });
 builder.Services.AddSingleton<TokenService>();
 
@@ -94,8 +94,23 @@ app.MapGet("/api/config", (IConfiguration config) => {
 });
 
 app.MapControllers();
-app.MapHub<StreamingHub>("/streaminghub");
-app.MapHub<BroadcastHub>("/broadcasthub");
+try
+{
+    app.MapHub<StreamingHub>("/streaminghub");
+    app.MapHub<BroadcastHub>("/broadcasthub");
+}
+catch (System.Reflection.ReflectionTypeLoadException ex)
+{
+    Console.WriteLine("=== ReflectionTypeLoadException ===");
+    foreach (var loaderEx in ex.LoaderExceptions)
+    {
+        Console.WriteLine(loaderEx?.Message);
+        if (loaderEx?.InnerException != null)
+            Console.WriteLine("INNER: " + loaderEx.InnerException.Message);
+    }
+
+    throw; // rethrow to keep existing behavior
+}
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

@@ -17,7 +17,10 @@ namespace gstream.Services
 
         public string GenerateToken(UserModel user)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var key = _config["Jwt:Key"]
+                ?? throw new InvalidOperationException("JWT Key is not configured in appsettings.json.");
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
