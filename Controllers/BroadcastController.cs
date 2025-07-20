@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using System.Security.Claims;    
 
 namespace gstream.Controllers
 {
@@ -29,12 +30,19 @@ namespace gstream.Controllers
         }
 
         [HttpPost("join/{roomId}")]
-        [Authorize(AuthenticationSchemes = "ApiKey")]
+        [Authorize(AuthenticationSchemes = "ApiKey")]         
         public async Task<IActionResult> JoinBroadcast(string roomId, [FromBody] JoinRequest request)
         {
             if (string.IsNullOrEmpty(request?.Username))
             {
                 return BadRequest(new { message = "Username is required." });
+            }
+
+            var authenticatedUsername = User.Identity?.Name;
+
+            if (authenticatedUsername != request.Username)
+            {
+                return Unauthorized(new { message = "Provided username does not match authenticated API Key user." });
             }
 
             if (!await _stateService.IsBroadcastActiveAsync(roomId))
@@ -43,7 +51,7 @@ namespace gstream.Controllers
             }
 
             var broadcastType = await _stateService.GetBroadcastTypeAsync(roomId);
-            var consumerIdentity = request.Username;
+            var consumerIdentity = request.Username;             
 
             if (broadcastType == "sfu")
             {
@@ -75,7 +83,7 @@ namespace gstream.Controllers
         }
 
         [HttpPost("start/sfu/{roomId}")]
-        [Authorize]
+        [Authorize]       
         public async Task<IActionResult> StartSfuBroadcast(string roomId)
         {
             if (await _stateService.IsBroadcastActiveAsync(roomId))
@@ -99,7 +107,7 @@ namespace gstream.Controllers
 
 
         [HttpPost("flush")]
-        [Authorize(AuthenticationSchemes = "ApiKey")]
+        [Authorize(AuthenticationSchemes = "ApiKey")]         
         public async Task<IActionResult> FlushBroadcasts()
         {
             await _stateService.FlushAllBroadcastsAsync();
@@ -107,7 +115,7 @@ namespace gstream.Controllers
         }
 
         [HttpPost("record/start/{roomId}")]
-        [Authorize]
+        [Authorize]       
         public async Task<IActionResult> StartRecording(string roomId)
         {
             if (!await _stateService.IsBroadcastActiveAsync(roomId))

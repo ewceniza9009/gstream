@@ -6,6 +6,7 @@ using gstream.Hubs;
 using gstream.Services;
 using gstream.Authentication;
 using StackExchange.Redis;
+using Microsoft.AspNetCore.Authentication;    
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,8 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
 builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
 builder.Services.AddSingleton<IBroadcastStateService, RedisBroadcastStateService>();
 builder.Services.AddSingleton<LiveKitService>();
+
+builder.Services.AddSingleton<IUserService, UserService>();     
 
 builder.Services.AddHttpContextAccessor();
 
@@ -109,7 +112,7 @@ catch (System.Reflection.ReflectionTypeLoadException ex)
             Console.WriteLine("INNER: " + loaderEx.InnerException.Message);
     }
 
-    throw;      
+    throw;
 }
 app.UseDefaultFiles();
 app.UseStaticFiles();

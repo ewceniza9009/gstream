@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using gstream.Models;
+using gstream.Models;     
 using gstream.Services;
+using System.Threading.Tasks;
 
 namespace gstream.Controllers
 {
@@ -9,24 +10,37 @@ namespace gstream.Controllers
     public class AuthController : ControllerBase
     {
         private readonly TokenService _tokenService;
-        private static readonly List<UserModel> Users = new List<UserModel>
-        {
-            new UserModel { Username = "testuser", Password = "password" }
-        };
+        private readonly IUserService _userService;
 
-        public AuthController(TokenService tokenService)
+        public AuthController(TokenService tokenService, IUserService userService)
         {
             _tokenService = tokenService;
+            _userService = userService;
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] UserModel login)
+        public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
-            var user = Users.FirstOrDefault(u => u.Username == login.Username && u.Password == login.Password);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);       
+            }
+
+            if (string.IsNullOrEmpty(loginRequest.Username))
+            {
+                return BadRequest(new { message = "Username is required." });
+            }
+
+            if (string.IsNullOrEmpty(loginRequest.Password))
+            {
+                return BadRequest(new { message = "Password is required." });
+            }
+
+            var user = await _userService.ValidateUserCredentialsAsync(loginRequest.Username, loginRequest.Password);
 
             if (user == null)
             {
-                return Unauthorized();
+                return Unauthorized(new { message = "Invalid username or password." });
             }
 
             var token = _tokenService.GenerateToken(user);
