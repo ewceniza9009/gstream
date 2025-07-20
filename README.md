@@ -1,25 +1,21 @@
-Of course. Here is the updated `README.md` file, modified to include the new SFU scaling capability powered by LiveKit, the live chat feature, and updated setup instructions.
-
------
-
 # gstream
 
-**gstream** is a real-time video streaming application built with **ASP.NET Core**, **SignalR**, and **WebRTC**. It supports **one-to-one video streaming** and **scalable one-to-many broadcasting** using a **Selective Forwarding Unit (SFU)** powered by **LiveKit**. It uses **Redis** for state management and **JWT/API key authentication**.
+**gstream** is a real-time video streaming application built with **ASP.NET Core**, **SignalR**, and **WebRTC**. It supports **one-to-one video streaming** and **one-to-many broadcasting**, using **Redis** for state management and **JWT/API key authentication**.
 
------
+---
 
 ## ✨ Features
 
-  - 🚀 **Scalable Broadcasting** via LiveKit SFU, allowing a single broadcaster to stream to a large audience with minimal client-side load.
-  - 💬 **Live Chat** for real-time interaction during broadcasts.
-  - 📡 **Dual Broadcasting Modes:** Choose between a simple peer-to-peer mesh for small groups or a powerful SFU for large audiences.
-  - 🔗 One-to-one video streaming via WebRTC and SignalR.
-  - 🔐 JWT-based user authentication for broadcasters.
-  - 💅 Responsive UI with Tailwind CSS.
-  - ⚡ Real-time communication with SignalR and Redis.
-  - 🌐 Cross-platform support with .NET 9.0.
+- 🚀 Scalable Broadcasting via LiveKit SFU, allowing a single broadcaster to stream to a large audience with minimal client-side load.
+- 💬 Live Chat for real-time interaction during broadcasts.
+- 📡 Dual Broadcasting Modes: Choose between a simple peer-to-peer mesh for small groups or a powerful SFU for large audiences.
+- 🔗 One-to-one video streaming via WebRTC and SignalR.
+- 🔐 JWT-based user authentication for broadcasters.
+- 💅 Responsive UI with Tailwind CSS.
+- ⚡ Real-time communication with SignalR and Redis.
+- 🌐 Cross-platform support with .NET 9.0.
 
------
+---
 
 ## 📁 Project Structure
 
@@ -59,113 +55,149 @@ gstream
 └── TokenService.cs               # JWT token service
 </pre>
 
------
+---
 
 ## ⚙️ Prerequisites
 
-  - [.NET 9.0 SDK](https://dotnet.microsoft.com/download)
-  - **Docker** (for running LiveKit and Redis)
-  - A running Redis instance
-  - A running LiveKit instance
-  - Web browser with WebRTC support (e.g., Chrome, Firefox, Edge)
+- [.NET 9.0 SDK](https://dotnet.microsoft.com/download)
+- Redis (local or via connection string)
+- Web browser with WebRTC support (e.g., Chrome, Firefox, Edge)
 
------
+---
 
 ## 🚀 Setup
 
-1.  **Clone the Repository**
+1. **Clone the repository**
 
-    ```bash
-    git clone <repository-url>
-    cd gstream
-    ```
+   ```bash
+   git clone <repository-url>
+   cd gstream
+   ```
 
-2.  **Configure and Run LiveKit Server**
+2. **Configure Redis**
 
-      - Create a file named `livekit.yaml` in the project's root directory.
-      - Add the following configuration. Replace the key and secret with your own secure, random values (the secret must be at least 32 characters long).
-        ```yaml
-        port: 7880
-        rtc:
-          tcp_port: 7881
-          port_range_start: 50000
-          port_range_end: 60000
-        keys:
-          APIKeyForGStream: ThisIsMyNewVerySecureSecretKeyForLiveKit32
-        ```
-      - Run the LiveKit server in a terminal using Docker:
-        ```bash
-        docker run --rm -it -p 7880:7880 -p 7881:7881 -p 50000-60000:50000-60000/udp -v ./livekit.yaml:/app/livekit.yaml livekit/livekit-server --config /app/livekit.yaml
-        ```
+   Edit `appsettings.json`:
 
-3.  **Run Redis Server**
+   ```json
+   "ConnectionStrings": {
+     "Redis": "localhost:6379"
+   }
+   ```
 
-      - In a **new terminal**, run Redis using Docker:
-        ```bash
-        docker run --rm -it -p 6379:6379 redis
-        ```
+3. **Configure JWT**
 
-4.  **Configure the `gstream` Application**
+   ```json
+   "Jwt": {
+     "Issuer": "gstream-api",
+     "Audience": "gstream-clients",
+     "Key": "<your-secure-key>"
+   }
+   ```
 
-      - Edit `appsettings.json` and fill in the values for `Jwt`, `ApiKey`, and the `LiveKit` section, making sure the keys match what you set in `livekit.yaml`.
-        ```json
-        {
-          "ConnectionStrings": {
-            "Redis": "localhost:6379"
-          },
-          "Jwt": {
-            "Issuer": "gstream-api",
-            "Audience": "gstream-clients",
-            "Key": "<your-secure-jwt-key>"
-          },
-          "LiveKit": {
-            "Url": "ws://localhost:7880",
-            "ApiKey": "APIKeyForGStream",
-            "ApiSecret": "ThisIsMyNewVerySecureSecretKeyForLiveKit32"
-          },
-          "ApiKey": "<your-secure-api-key-for-consumers>"
-        }
-        ```
+4. **Configure API Key**
 
-5.  **Restore Dependencies and Run**
+   ```json
+   "ApiKey": "<your-api-key>"
+   ```
 
-    ```bash
-    dotnet restore
-    dotnet run
-    ```
+5. **Configure Public URL**
 
------
+   ```json
+   "PublicUrl": "http://localhost:5122"
+   ```
 
-## архитектура
+6. **Restore dependencies**
 
-  - **One-to-One Streaming:** Uses a direct WebRTC peer-to-peer connection, with signaling brokered by SignalR.
-  - **One-to-Many Broadcasting (Mesh Mode):** The broadcaster creates a direct WebRTC connection with every individual viewer. This is simple but limited by the broadcaster's upload bandwidth. Best for 1-2 viewers.
-  - **One-to-Many Broadcasting (SFU Mode):** The broadcaster sends a single high-quality stream to the **LiveKit SFU**. The SFU then handles the heavy lifting of distributing that stream to all viewers. This method is highly efficient and scalable, allowing for a large audience.
+   ```bash
+   dotnet restore
+   ```
 
------
+7. **Run the application**
+
+   ```bash
+   dotnet run
+   ```
+
+---
+
+## 🌐 Access the Application
+
+- **One-to-one streaming:**  
+  `http://localhost:[Port#]`
+
+- **Broadcasting:**  
+  `http://localhost:[Port#]/broadcast.html`
+
+- **Broadcast consumer:**  
+  `http://localhost:[Port#]/consumer.html`
+
+- **Test credentials:**  
+  `Username: testuser`  
+  `Password: password`
+
+---
+
+---
+## Access Page
+<img width="1912" height="894" alt="image" src="https://github.com/user-attachments/assets/d1b72235-79c8-49c7-a175-b744c2f63a23" />
+<img width="1919" height="907" alt="image" src="https://github.com/user-attachments/assets/699280c5-e6d0-4f72-af4c-f157e6020720" />
+<img width="1919" height="905" alt="image" src="https://github.com/user-attachments/assets/a0ba68b2-dd24-45fe-8286-b35953a7cdd1" />
+<img width="1919" height="909" alt="image" src="https://github.com/user-attachments/assets/33e21836-56b2-46bc-9e42-cecc111e057d" />
+
+
+## Broadcasting
+<img width="1919" height="905" alt="Screenshot 2025-07-20 010138" src="https://github.com/user-attachments/assets/864f6823-f5aa-4dc5-a5b1-f8d291969c65" />
+
+## Broadcast Consumer
+<img width="1919" height="911" alt="Screenshot 2025-07-19 220100" src="https://github.com/user-attachments/assets/d648a0f6-39a7-47ae-a7f6-ee74ac272c6d" />
+
+---
+
+## Features
+
+- One-to-One Streaming: Uses a direct WebRTC peer-to-peer connection, with signaling brokered by SignalR.
+- One-to-Many Broadcasting (Mesh Mode): The broadcaster creates a direct WebRTC connection with every individual viewer. This is simple but limited by the broadcaster's upload bandwidth. Best for 1-2 viewers.
+- One-to-Many Broadcasting (SFU Mode): The broadcaster sends a single high-quality stream to the LiveKit SFU. The SFU then handles the heavy lifting of distributing that stream to all viewers. This method is highly efficient and scalable, allowing for a large audience.
+
+---
 
 ## 🧪 Usage
 
 ### 🎥 One-to-One Streaming
 
-1.  Go to `index.html`
-2.  Log in with `testuser / password`
-3.  Enter a Room ID and click **Join Room**
+1. Go to `index.html`  
+2. Log in with `testuser / password`  
+3. Enter a Room ID  
+4. Click **Join Room**
 
 ### 📢 Broadcasting
 
-1.  Go to `broadcast.html`
-2.  Log in with `testuser / password`
-3.  Choose a broadcast type: **SFU (Recommended)** or Mesh.
-4.  Enter a Room ID and click **Start Broadcast**.
+1. Go to `broadcast.html`  
+2. Log in with `testuser / password`  
+3. Click **Start Broadcast**  
+4. Enter a Room ID and begin streaming
 
 ### 👀 Broadcast Consumer
 
-1.  Go to `consumer.html`
-2.  Enter your **API Key** and **Room ID**
-3.  Click **Find and View Stream**
+1. Go to `consumer.html`  
+2. Enter your **API Key** and **Room ID**  
+3. Click **Find and View Stream**
 
------
+---
+
+## 🔐 Authentication
+
+- **Users:** JWT-based via `AuthController`  
+- **Consumers:** API key-based via `ApiKeyAuth`
+
+---
+
+## 📡 WebRTC and SignalR
+
+- **WebRTC:** Peer-to-peer media streaming using STUN servers  
+- **SignalR:** Real-time signaling with Redis backplane
+
+---
 
 ## 🔧 Configuration Reference
 
@@ -173,46 +205,43 @@ gstream
 
 ```json
 {
+  "PublicUrl": "http://localhost:5122",
   "ConnectionStrings": {
     "Redis": "localhost:6379"
   },
   "Jwt": {
     "Issuer": "gstream-api",
     "Audience": "gstream-clients",
-    "Key": "<your-secure-jwt-key>"
+    "Key": "<your-secure-key>"
   },
-  "LiveKit": {
-    "Url": "ws://localhost:7880",
-    "ApiKey": "<your-livekit-api-key>",
-    "ApiSecret": "<your-livekit-api-secret>"
-  },
-  "ApiKey": "<your-secure-api-key>"
+  "ApiKey": "<your-api-key>"
 }
 ```
 
-### `livekit.yaml`
+---
 
-```yaml
-port: 7880
-rtc:
-  tcp_port: 7881
-  port_range_start: 50000
-  port_range_end: 60000
-keys:
-  # Must match the ApiKey and ApiSecret in appsettings.json
-  <your-livekit-api-key>: <your-livekit-api-secret-at-least-32-chars>
-```
+## 🛠 Development
 
------
+- **Swagger UI:** Available at `/swagger` (in development mode)
+- **HTTP Testing:** Use `gstream.http` with REST Client
+- **Tech Stack:**  
+  - ASP.NET Core 9.0  
+  - SignalR  
+  - Redis  
+  - WebRTC  
+  - Tailwind CSS  
+  - Swashbuckle
+
+---
 
 ## ⚠️ Notes
 
-  - Ensure camera/microphone permissions are granted in your browser.
-  - Ensure your firewall allows access to the required TCP and UDP ports if testing on a local network.
-  - Broadcasts expire after **4 hours** in Redis.
-  - Only **one broadcaster per room** is allowed.
+- Ensure camera/microphone permissions are granted in your browser.
+- Local video preview is mirrored.
+- Broadcasts expire after **4 hours**.
+- Only **one broadcaster per room** is allowed.
 
------
+---
 
 ## 📄 License
 
