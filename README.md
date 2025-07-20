@@ -142,8 +142,6 @@ gstream
 <img width="1912" height="894" alt="image" src="https://github.com/user-attachments/assets/d1b72235-79c8-49c7-a175-b744c2f63a23" />
 <img width="1919" height="907" alt="image" src="https://github.com/user-attachments/assets/699280c5-e6d0-4f72-af4c-f157e6020720" />
 <img width="1919" height="905" alt="image" src="https://github.com/user-attachments/assets/a0ba68b2-dd24-45fe-8286-b35953a7cdd1" />
-<img width="1919" height="909" alt="image" src="https://github.com/user-attachments/assets/33e21836-56b2-46bc-9e42-cecc111e057d" />
-
 
 ## Broadcasting
 <img width="1919" height="905" alt="Screenshot 2025-07-20 010138" src="https://github.com/user-attachments/assets/864f6823-f5aa-4dc5-a5b1-f8d291969c65" />
