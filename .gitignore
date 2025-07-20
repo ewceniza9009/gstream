@@ -365,3 +365,6 @@ FodyWeavers.xsd
 /livekit.yaml
 /appsettings.json
 /livekit.yaml
+/LiveKit/LiveKitApi.dll
+/LiveKit/LivekitApi.deps.json
+/LiveKit/LivekitApi.xml
