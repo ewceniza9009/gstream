@@ -96,12 +96,14 @@
                     <button id="view-broadcast-button" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">View Broadcast</button>
                 </div>
 
-                <div class="mt-6 border-t border-gray-700 pt-6">
+                <div class="mt-6 border-t border-gray-700 pt-6 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-center text-red-400 mb-3">Admin Actions</h3>
-                    <div class="space-y-3">
-                        <button id="record-button" class="w-full bg-purple-800 hover:bg-purple-900 text-white font-bold py-3 px-4 rounded-md transition duration-300">Start Recording</button>
-                        <button id="flush-broadcasts-button" class="w-full bg-red-800 hover:bg-red-900 text-white font-bold py-3 px-4 rounded-md transition duration-300">Flush All Active Broadcasts</button>
-                    </div>
+                    <button id="logout-button-role" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 mb-3">Logout</button>
+                </div>
+
+                <div class="space-y-3">
+                    <button id="record-button" class="w-full bg-purple-800 hover:bg-purple-900 text-white font-bold py-3 px-4 rounded-md transition duration-300">Start Recording</button>
+                    <button id="flush-broadcasts-button" class="w-full bg-red-800 hover:bg-red-900 text-white font-bold py-3 px-4 rounded-md transition duration-300">Flush All Active Broadcasts</button>
                 </div>
             </div>
         </div>
@@ -109,7 +111,7 @@
         <div id="streaming-section" class="hidden">
             <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-xl mb-6">
                 <p id="status" class="text-yellow-400"></p>
-                <button id="leave-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300">Leave</button>
+                <div class="flex gap-2"> <button id="leave-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300">Leave Broadcast</button> <button id="logout-button-streaming" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-md transition duration-300">Logout</button> </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">

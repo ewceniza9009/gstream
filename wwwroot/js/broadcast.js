@@ -20,6 +20,8 @@
     const startBroadcastBtn = document.getElementById('start-broadcast-button');
     const viewBroadcastBtn = document.getElementById('view-broadcast-button');
     const leaveBtn = document.getElementById('leave-button');
+    const logoutButtonRole = document.getElementById('logout-button-role');
+    const logoutButtonStreaming = document.getElementById('logout-button-streaming');
     const localVideoContainer = document.getElementById('local-video-container');
     const remoteVideoContainer = document.getElementById('remote-video-container');
     const localVideo = document.getElementById('localVideo');
@@ -44,7 +46,7 @@
     let userRole;
     let livekitRoom;
     let broadcastType;
-    let myUsername = 'Broadcaster';
+    let myUsername;
 
     const iceServers = {
         iceServers: [
@@ -53,10 +55,14 @@
         ]
     };
 
+    initializeApplicationState();
+
     loginButton.addEventListener('click', handleLogin);
     startBroadcastBtn.addEventListener('click', startBroadcast);
     viewBroadcastBtn.addEventListener('click', viewBroadcast);
     leaveBtn.addEventListener('click', handleLeave);
+    logoutButtonRole.addEventListener('click', handleLogout);
+    logoutButtonStreaming.addEventListener('click', handleLogout);
     flushBroadcastsBtn.addEventListener('click', handleFlushBroadcasts);
     chatSendButton.addEventListener('click', sendChatMessage);
     chatInput.addEventListener('keydown', (e) => {
@@ -89,29 +95,107 @@
         }
     });
 
-
     async function handleLogin() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const username = usernameInput.value;
+        const password = passwordInput.value;
         const loginError = document.getElementById('login-error');
         loginError.textContent = '';
+
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ Username: username, Password: password }) 
+                body: JSON.stringify({ Username: username, Password: password })
             });
-            if (!response.ok) throw new Error('Invalid credentials');
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                let errorMessage = errorData.message || 'Invalid credentials';
+                if (errorData.errors) {
+                    errorMessage = Object.values(errorData.errors).flat().join('; ') || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+
             const data = await response.json();
             jwtToken = data.token;
             myUsername = username;
+
+            localStorage.setItem('jwtToken', jwtToken);
+            localStorage.setItem('myUsername', myUsername);
+
+            passwordInput.value = '';
+
             loginSection.classList.add('hidden');
             roleSection.classList.remove('hidden');
+
         } catch (error) {
-            loginError.textContent = 'Login failed. Please check your credentials.';
+            loginError.textContent = `Login failed: ${error.message}`;
             console.error('Login failed:', error);
         }
     }
+
+    function initializeApplicationState() {
+        const storedToken = localStorage.getItem('jwtToken');
+        const storedUsername = localStorage.getItem('myUsername');
+
+        if (storedToken && storedUsername) {
+            jwtToken = storedToken;
+            myUsername = storedUsername;
+            loginSection.classList.add('hidden');
+            roleSection.classList.remove('hidden');
+            console.log(`Restored login for: ${myUsername}`);
+        } else {
+            loginSection.classList.remove('hidden');
+            roleSection.classList.add('hidden');
+        }
+    }
+
+    async function handleLeave() {
+        if (livekitRoom) {
+            console.log('Disconnecting from LiveKit room...');
+            await livekitRoom.disconnect();
+            livekitRoom = null;
+        }
+        if (signalRConnection) {
+            console.log('Stopping SignalR connection...');
+            await signalRConnection.stop();
+            signalRConnection = null;
+        }
+        switchToRoleSelection();
+        statusDiv.textContent = '';
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+            localVideo.srcObject = null;
+        }
+        remoteVideo.srcObject = null;
+        for (const peerId in peerConnections) {
+            if (peerConnections[peerId]) {
+                peerConnections[peerId].close();
+            }
+        }
+        peerConnections = {};
+
+        console.log('Left broadcast. Returning to role selection.');
+    }
+
+    async function handleLogout() {
+        await handleLeave();
+
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('myUsername');
+        jwtToken = null;
+        myUsername = null;
+
+        loginSection.classList.remove('hidden');
+        roleSection.classList.add('hidden');
+        streamingSection.classList.add('hidden');
+        console.log('User logged out. Redirected to login screen.');
+    }
+
 
     async function startBroadcast() {
         userRole = 'broadcaster';
@@ -134,7 +218,7 @@
         } catch (error) {
             console.error('Could not start broadcast.', error);
             alert(error.message || 'An unknown error occurred while starting the broadcast.');
-            window.location.reload();
+            handleLeave();
         }
     }
 
@@ -204,16 +288,6 @@
         }
     }
 
-    async function handleLeave() {
-        if (livekitRoom) {
-            await livekitRoom.disconnect();
-        }
-        if (signalRConnection) {
-            await signalRConnection.stop();
-        }
-        window.location.reload();
-    }
-
     function sendChatMessage() {
         const text = chatInput.value;
         if (!text) return;
@@ -276,7 +350,7 @@
 
         signalRConnection.on('BroadcastEnded', () => {
             alert('The broadcast has ended.');
-            window.location.reload();
+            handleLeave();
         });
 
         signalRConnection.on('BroadcastExists', () => {
@@ -356,6 +430,8 @@
         localVideoContainer.classList.add('hidden');
         remoteVideoContainer.classList.add('hidden');
         chatSection.classList.add('hidden');
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Start Recording';
     }
 
     async function handleFlushBroadcasts() {
