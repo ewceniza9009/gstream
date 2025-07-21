@@ -7,6 +7,7 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -35,6 +36,10 @@
             .chat-message.other {
                 align-self: flex-start;
             }
+
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
@@ -46,66 +51,35 @@
         <div id="login-section" class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-sm mx-auto">
             <h2 class="text-2xl font-semibold mb-4 text-center">Login to Broadcast</h2>
             <div class="space-y-4">
-                <input type="text" id="username" placeholder="Username (testuser)" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                <input type="password" id="password" placeholder="Password (password)" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <input type="text" id="username" placeholder="Username (testuser)" value="testuser" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <input type="password" id="password" placeholder="Password (password)" value="password" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                 <button id="login-button" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Login</button>
             </div>
             <p id="login-error" class="text-red-400 mt-4 text-center"></p>
         </div>
 
         <div id="role-section" class="hidden">
-            <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg mx-auto mb-8">
                 <h2 class="text-2xl font-semibold mb-4 text-center">Configure Your Broadcast</h2>
-                <input type="text" id="room-id" placeholder="Enter a Room ID" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-4">
-
-                <div class="my-4">
-                    <label class="block text-gray-400 mb-2">Select Broadcast Type:</label>
-                    <div class="flex items-center space-x-6">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="broadcastType" value="sfu" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
-                            <span class="ml-2 text-white">SFU (for large audience)</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="broadcastType" value="mesh" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
-                            <span class="ml-2 text-white">Mesh (for 1-2 viewers)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="my-4">
-                    <label class="block text-gray-400 mb-2">Select Camera Source:</label>
-                    <div class="flex items-center space-x-6">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="cameraSource" value="local" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
-                            <span class="ml-2 text-white">Local Webcam</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="cameraSource" value="ip" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500">
-                            <span class="ml-2 text-white">IP Camera</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="ip-camera-section" class="hidden my-4">
-                    <input type="text" id="ip-camera-url" placeholder="Enter IP Cam Stream URL (e.g., MJPEG)" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                    <p class="text-xs text-gray-500 mt-1">Note: URL must be a browser-compatible stream like MJPEG or HLS.</p>
-                </div>
-
+                <input type="text" id="room-id" placeholder="Enter a Room ID or Select a Room Below" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-4">
                 <div class="flex flex-col md:flex-row gap-4">
                     <button id="start-broadcast-button" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Start Broadcast</button>
-                    <button id="view-broadcast-button" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">View Broadcast</button>
                 </div>
-
-                <div class="mt-6 border-t border-gray-700 pt-6 flex justify-between items-center">
-                    <h3 class="text-lg font-semibold text-center text-red-400 mb-3">Admin Actions</h3>
-                    <button id="logout-button-role" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 mb-3">Logout</button>
-                </div>
-
-                <div class="space-y-3">
-                    <button id="record-button" class="w-full bg-purple-800 hover:bg-purple-900 text-white font-bold py-3 px-4 rounded-md transition duration-300">Start Recording</button>
-                    <button id="flush-broadcasts-button" class="w-full bg-red-800 hover:bg-red-900 text-white font-bold py-3 px-4 rounded-md transition duration-300">Flush All Active Broadcasts</button>
+                <div class="mt-6 border-t border-gray-700 pt-4 flex justify-between items-center">
+                    <div></div>
+                    <button id="logout-button-role" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Logout</button>
                 </div>
             </div>
+
+            <div id="room-management-section" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold">Room Management</h2>
+                    <button id="create-room-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 flex items-center gap-2"><i class="fas fa-plus"></i> Create Room</button>
+                </div>
+                <div id="room-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                </div>
+            </div>
+
         </div>
 
         <div id="streaming-section" class="hidden">
@@ -120,12 +94,7 @@
                         <h3 class="text-xl font-semibold mb-2 text-center">My Camera</h3>
                         <video id="localVideo" autoplay playsinline muted class="w-full rounded-md bg-black"></video>
                     </div>
-                    <div id="remote-video-container" class="bg-gray-800 p-4 rounded-lg shadow-xl hidden w-full max-w-2xl">
-                        <h3 class="text-xl font-semibold mb-2 text-center">Live Broadcast</h3>
-                        <video id="remoteVideo" autoplay playsinline class="w-full rounded-md bg-black"></video>
-                    </div>
                 </div>
-
                 <div id="chat-section" class="md:col-span-1 bg-gray-800 p-4 rounded-lg shadow-xl flex-col hidden h-full">
                     <h3 class="text-xl font-semibold mb-2 text-center">Live Chat</h3>
                     <div id="chat-messages" class="chat-box flex-grow mb-4 p-2 bg-gray-900 rounded"></div>
@@ -137,6 +106,24 @@
             </div>
         </div>
     </div>
+
+    <div id="room-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 id="room-modal-title" class="text-xl font-semibold mb-4">Create Room</h3>
+            <form id="room-modal-form">
+                <input type="hidden" id="room-id-modal">
+                <div>
+                    <label for="room-name-modal" class="block text-sm font-medium text-gray-300 mb-1">Room Name</label>
+                    <input type="text" id="room-name-modal" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div class="mt-6 flex justify-end gap-4">
+                    <button type="button" id="close-modal-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                    <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.2.0/dist/livekit-client.umd.min.js"></script>

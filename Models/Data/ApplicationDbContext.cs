@@ -29,22 +29,58 @@ namespace gstream.Data
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
-            modelBuilder.Entity<User>().HasData(
-                new User
+            // Seed Users
+            var testUser = new User
+            {
+                Id = 1,
+                Username = "testuser",
+                PasswordHash = "password", // In a real app, this should be hashed!
+                UserApiKey = "testUserApiKey"
+            };
+            var anotherUser = new User
+            {
+                Id = 2,
+                Username = "anotheruser",
+                PasswordHash = "anotherpassword",
+                UserApiKey = "anotherUserApiKey123"
+            };
+            modelBuilder.Entity<User>().HasData(testUser, anotherUser);
+
+            // Seed Rooms
+            var roomsToSeed = new List<Room>();
+            for (int i = 1; i <= 20; i++)
+            {
+                RoomStatus status;
+                int? broadcasterId = null;
+                DateTime? endedAt = null;
+
+                if (i <= 5)
                 {
-                    Id = 1,
-                    Username = "testuser",
-                    PasswordHash = "password",
-                    UserApiKey = "testUserApiKey"
-                },
-                new User
-                {
-                    Id = 2,
-                    Username = "anotheruser",
-                    PasswordHash = "anotherpassword",
-                    UserApiKey = "anotherUserApiKey123"
+                    status = RoomStatus.Broadcasting;
+                    broadcasterId = 1; // testuser
                 }
-            );
+                else if (i <= 10)
+                {
+                    status = RoomStatus.Ended;
+                    broadcasterId = 1; // testuser
+                    endedAt = DateTime.UtcNow.AddHours(-i / 2.0);
+                }
+                else
+                {
+                    status = RoomStatus.Open;
+                }
+                roomsToSeed.Add(new Room
+                {
+                    Id = i,
+                    Name = $"Dummy Room {i}",
+                    Status = status,
+                    CreatedAt = DateTime.UtcNow.AddHours(-i),
+                    EndedAt = endedAt,
+                    BroadcasterId = broadcasterId
+                });
+            }
+            modelBuilder.Entity<Room>().HasData(roomsToSeed);
+
 
             modelBuilder.Entity<ChatMessage>()
                 .HasOne(m => m.User)

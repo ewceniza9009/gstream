@@ -17,7 +17,7 @@ namespace gstream.Models.Data
 
         [Required]
         [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;    
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         public RoomStatus Status { get; set; }
@@ -26,7 +26,7 @@ namespace gstream.Models.Data
 
         public DateTime? EndedAt { get; set; }
 
-        public int BroadcasterId { get; set; }
+        public int? BroadcasterId { get; set; } // Made nullable
         [ForeignKey("BroadcasterId")]
         public virtual User? Broadcaster { get; set; }
 
