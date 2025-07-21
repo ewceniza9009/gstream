@@ -8,7 +8,7 @@ namespace gstream.Controllers
 {
     [Route("api/rooms")]
     [ApiController]
-    [Authorize] // Ensures only logged-in users can access these endpoints
+    [Authorize]         
     public class RoomController : ControllerBase
     {
         private readonly IRoomService _roomService;

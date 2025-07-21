@@ -26,7 +26,7 @@ namespace gstream.Models.Data
 
         public DateTime? EndedAt { get; set; }
 
-        public int? BroadcasterId { get; set; } // Made nullable
+        public int? BroadcasterId { get; set; }   
         [ForeignKey("BroadcasterId")]
         public virtual User? Broadcaster { get; set; }
 

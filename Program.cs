@@ -25,7 +25,7 @@ builder.Services.AddSingleton<IBroadcastStateService, RedisBroadcastStateService
 builder.Services.AddSingleton<LiveKitService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IRoomService, RoomService>(); // Add this line
+builder.Services.AddScoped<IRoomService, RoomService>();    
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<TokenService>();

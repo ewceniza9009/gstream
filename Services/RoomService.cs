@@ -21,13 +21,13 @@ namespace gstream.Services
         {
             if (await _context.Rooms.AnyAsync(r => r.Name == name))
             {
-                return null; // Room name must be unique
+                return null;      
             }
 
             var room = new Room
             {
                 Name = name,
-                Status = RoomStatus.Open, // New rooms are open by default
+                Status = RoomStatus.Open,       
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -53,7 +53,7 @@ namespace gstream.Services
         public async Task<IEnumerable<RoomDto>> GetAllRoomsAsync()
         {
             var rooms = await _context.Rooms
-                .Include(r => r.Broadcaster) // Include broadcaster details
+                .Include(r => r.Broadcaster)    
                 .OrderBy(r => r.Name)
                 .ToListAsync();
 
@@ -77,10 +77,9 @@ namespace gstream.Services
                 return null;
             }
 
-            // Check if another room already has the new name
             if (await _context.Rooms.AnyAsync(r => r.Name == name && r.Id != id))
             {
-                return null; // Unique name violation
+                return null;    
             }
 
             room.Name = name;
