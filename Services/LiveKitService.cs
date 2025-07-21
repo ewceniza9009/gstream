@@ -1,6 +1,7 @@
 ﻿using Livekit.Server.Sdk.Dotnet;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Threading.Tasks;  
 
 namespace gstream.Services
 {
@@ -9,6 +10,8 @@ namespace gstream.Services
         private readonly string _liveKitHost;
         private readonly string _apiKey;
         private readonly string _apiSecret;
+        private readonly string _liveKitApiUrl;
+        private readonly RoomServiceClient _roomServiceClient;
 
         public LiveKitService(IConfiguration configuration)
         {
@@ -26,14 +29,28 @@ namespace gstream.Services
                 ?? throw new InvalidOperationException("LiveKit:ApiKey is not configured in appsettings.json.");
             _apiSecret = configuration.GetValue<string>("LiveKit:ApiSecret")
                 ?? throw new InvalidOperationException("LiveKit:ApiSecret is not configured in appsettings.json.");
+
+            _liveKitApiUrl = _liveKitHost.Replace("wss://", "http://").Replace("ws://", "http://");
+            _roomServiceClient = new RoomServiceClient(_liveKitApiUrl, _apiKey, _apiSecret);
         }
 
         public string GetLiveKitUrl() => _liveKitHost;
 
         public EgressServiceClient CreateEgressClient()
         {
-            var apiUrl = GetLiveKitUrl().Replace("wss://", "http://").Replace("ws://", "http://");
-            return new EgressServiceClient(apiUrl, _apiKey, _apiSecret);
+            return new EgressServiceClient(_liveKitApiUrl, _apiKey, _apiSecret);
+        }
+
+        public async Task DeleteRoomAsync(string roomName)
+        {
+            try
+            {
+                await _roomServiceClient.DeleteRoom(new() { Room = roomName });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not delete LiveKit room '{roomName}'. It may have already been deleted. Error: {ex.Message}");
+            }
         }
 
         public string GenerateToken(string roomName, string participantIdentity, bool isBroadcaster = false)

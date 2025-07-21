@@ -26,6 +26,7 @@ namespace gstream.Services
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+                new Claim(ClaimTypes.Name, user.Username),       
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

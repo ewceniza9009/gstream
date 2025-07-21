@@ -154,6 +154,24 @@
     }
 
     async function handleLeave() {
+        if (userRole === 'broadcaster' && broadcastType === 'sfu' && currentRoomId) {
+            console.log('Gracefully ending SFU broadcast on the server...');
+            try {
+                const response = await fetch(`${API_URL}/api/broadcast/end/sfu/${currentRoomId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
+                });
+                if (response.ok) {
+                    console.log('Server confirmed SFU broadcast ended.');
+                } else {
+                    const errText = await response.text();
+                    console.error('Server failed to end SFU broadcast:', errText);
+                }
+            } catch (error) {
+                console.error('Error sending end signal for SFU broadcast:', error);
+            }
+        }
+
         if (livekitRoom) {
             console.log('Disconnecting from LiveKit room...');
             await livekitRoom.disconnect();
