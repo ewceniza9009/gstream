@@ -1,11 +1,12 @@
-﻿using gstream.Services;
+﻿using gstream.Models.Data;       
+using gstream.Services;
 using Livekit.Server.Sdk.Dotnet;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using gstream.Models.Data;       
 
 namespace gstream.Controllers
 {
@@ -151,6 +152,13 @@ namespace gstream.Controllers
         [Authorize]
         public async Task<IActionResult> StartRecording(string roomId)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                var message = "Recording is only supported when running on a Linux server with Docker.";
+                _logger.LogWarning(message);
+                return StatusCode(501, new { message });    
+            }
+
             if (!await _stateService.IsBroadcastActiveAsync(roomId))
             {
                 return NotFound(new { message = "No active broadcast to record." });
