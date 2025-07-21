@@ -1,7 +1,7 @@
 ﻿using gstream.Models.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options; // Required for the fix
+using Microsoft.Extensions.Options;     
 
 namespace gstream.Data
 {
@@ -31,8 +31,6 @@ namespace gstream.Data
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
-            // --- User Seeding Logic ---
-            // Create a hasher with the correct, modern V3 format.
             var hasher = new PasswordHasher<User>(
                 new OptionsWrapper<PasswordHasherOptions>(
                     new PasswordHasherOptions()
@@ -58,7 +56,6 @@ namespace gstream.Data
                 }
             );
 
-            // The Room seeding can remain
             var roomsToSeed = new List<Room>();
             for (int i = 1; i <= 20; i++)
             {
@@ -69,12 +66,12 @@ namespace gstream.Data
                 if (i <= 5)
                 {
                     status = RoomStatus.Broadcasting;
-                    broadcasterId = 1; // testuser
+                    broadcasterId = 1;  
                 }
                 else if (i <= 10)
                 {
                     status = RoomStatus.Ended;
-                    broadcasterId = 1; // testuser
+                    broadcasterId = 1;  
                     endedAt = DateTime.UtcNow.AddHours(-i / 2.0);
                 }
                 else

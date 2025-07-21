@@ -50,7 +50,6 @@ namespace gstream.Controllers
 
             if (!success)
             {
-                // 409 Conflict is appropriate if the username is already taken
                 return Conflict(new { message });
             }
 

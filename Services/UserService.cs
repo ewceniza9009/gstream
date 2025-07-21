@@ -1,6 +1,6 @@
 ﻿using gstream.Data;
 using gstream.Models.Data;
-using Microsoft.AspNetCore.Identity; // Required for the hasher
+using Microsoft.AspNetCore.Identity;     
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
@@ -26,7 +26,6 @@ namespace gstream.Services
 
             var user = new User { Username = username };
 
-            // Hash the password using the ASP.NET Core Identity hasher
             user.PasswordHash = _passwordHasher.HashPassword(user, password);
             user.UserApiKey = $"gsk_{Guid.NewGuid():N}";
 
@@ -44,7 +43,6 @@ namespace gstream.Services
                 return null;
             }
 
-            // Verify the password using the ASP.NET Core Identity hasher
             var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
 
             return result == PasswordVerificationResult.Success ? user : null;
