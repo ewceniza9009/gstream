@@ -1,15 +1,16 @@
+using gstream.Authentication;
+using gstream.Data;
+using gstream.Hubs;
+using gstream.Models.Data;
+using gstream.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using gstream.Hubs;
-using gstream.Services;
-using gstream.Authentication;
-using StackExchange.Redis;
-using Microsoft.AspNetCore.Authentication;
-using gstream.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using gstream.Models.Data;
+using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,9 @@ builder.Services.AddSingleton<IBroadcastStateService, RedisBroadcastStateService
 builder.Services.AddSingleton<LiveKitService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IRoomService, RoomService>();    
+builder.Services.AddScoped<IRoomService, RoomService>();
+
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<TokenService>();

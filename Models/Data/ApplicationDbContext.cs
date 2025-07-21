@@ -1,5 +1,7 @@
 ﻿using gstream.Models.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options; // Required for the fix
 
 namespace gstream.Data
 {
@@ -29,24 +31,34 @@ namespace gstream.Data
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
-            // Seed Users
-            var testUser = new User
-            {
-                Id = 1,
-                Username = "testuser",
-                PasswordHash = "password", // In a real app, this should be hashed!
-                UserApiKey = "testUserApiKey"
-            };
-            var anotherUser = new User
-            {
-                Id = 2,
-                Username = "anotheruser",
-                PasswordHash = "anotherpassword",
-                UserApiKey = "anotherUserApiKey123"
-            };
-            modelBuilder.Entity<User>().HasData(testUser, anotherUser);
+            // --- User Seeding Logic ---
+            // Create a hasher with the correct, modern V3 format.
+            var hasher = new PasswordHasher<User>(
+                new OptionsWrapper<PasswordHasherOptions>(
+                    new PasswordHasherOptions()
+                    {
+                        CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3
+                    })
+            );
 
-            // Seed Rooms
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    Id = 1,
+                    Username = "testuser",
+                    PasswordHash = hasher.HashPassword(null, "password"),
+                    UserApiKey = "testUserApiKey"
+                },
+                new User
+                {
+                    Id = 2,
+                    Username = "anotheruser",
+                    PasswordHash = hasher.HashPassword(null, "anotherpassword"),
+                    UserApiKey = "anotherUserApiKey123"
+                }
+            );
+
+            // The Room seeding can remain
             var roomsToSeed = new List<Room>();
             for (int i = 1; i <= 20; i++)
             {
@@ -72,7 +84,7 @@ namespace gstream.Data
                 roomsToSeed.Add(new Room
                 {
                     Id = i,
-                    Name = $"Dummy Room {i}",
+                    Name = $"Room {i}",
                     Status = status,
                     CreatedAt = DateTime.UtcNow.AddHours(-i),
                     EndedAt = endedAt,

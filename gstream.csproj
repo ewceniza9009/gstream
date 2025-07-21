@@ -33,6 +33,7 @@
 
 	<ItemGroup>
 		<Folder Include="LiveKit\" />
+		<Folder Include="Migrations\" />
 	</ItemGroup>
 
 	<ItemGroup>

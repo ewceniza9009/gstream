@@ -8,5 +8,6 @@ namespace gstream.Services
         Task<User?> ValidateUserCredentialsAsync(string username, string password);
         Task<User?> GetUserByApiKeyAsync(string apiKey);
         Task<User?> GetUserByUsernameAsync(string username);
+        Task<(bool Success, string Message)> RegisterUserAsync(string username, string password);
     }
 }

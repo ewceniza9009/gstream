@@ -38,7 +38,7 @@ namespace gstream.Migrations
                     Status = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    BroadcasterId = table.Column<int>(type: "int", nullable: false)
+                    BroadcasterId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -80,12 +80,46 @@ namespace gstream.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "Rooms",
+                columns: new[] { "Id", "BroadcasterId", "CreatedAt", "EndedAt", "Name", "Status" },
+                values: new object[,]
+                {
+                    { 11, null, new DateTime(2025, 7, 21, 6, 2, 34, 562, DateTimeKind.Utc).AddTicks(2435), null, "Room 11", 0 },
+                    { 12, null, new DateTime(2025, 7, 21, 5, 2, 34, 562, DateTimeKind.Utc).AddTicks(2437), null, "Room 12", 0 },
+                    { 13, null, new DateTime(2025, 7, 21, 4, 2, 34, 562, DateTimeKind.Utc).AddTicks(2438), null, "Room 13", 0 },
+                    { 14, null, new DateTime(2025, 7, 21, 3, 2, 34, 562, DateTimeKind.Utc).AddTicks(2439), null, "Room 14", 0 },
+                    { 15, null, new DateTime(2025, 7, 21, 2, 2, 34, 562, DateTimeKind.Utc).AddTicks(2440), null, "Room 15", 0 },
+                    { 16, null, new DateTime(2025, 7, 21, 1, 2, 34, 562, DateTimeKind.Utc).AddTicks(2442), null, "Room 16", 0 },
+                    { 17, null, new DateTime(2025, 7, 21, 0, 2, 34, 562, DateTimeKind.Utc).AddTicks(2443), null, "Room 17", 0 },
+                    { 18, null, new DateTime(2025, 7, 20, 23, 2, 34, 562, DateTimeKind.Utc).AddTicks(2445), null, "Room 18", 0 },
+                    { 19, null, new DateTime(2025, 7, 20, 22, 2, 34, 562, DateTimeKind.Utc).AddTicks(2446), null, "Room 19", 0 },
+                    { 20, null, new DateTime(2025, 7, 20, 21, 2, 34, 562, DateTimeKind.Utc).AddTicks(2447), null, "Room 20", 0 }
+                });
+
+            migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "PasswordHash", "UserApiKey", "Username" },
                 values: new object[,]
                 {
-                    { 1, "password", "testUserApiKey", "testuser" },
-                    { 2, "anotherpassword", "anotherUserApiKey123", "anotheruser" }
+                    { 1, "AQAAAAIAAYagAAAAEJ2glyJVslV2nenWZpfZlc63iwhoGeKosm5cW2sQ83bH84BZsWwbcTfCivW+/9YaoQ==", "testUserApiKey", "testuser" },
+                    { 2, "AQAAAAIAAYagAAAAEOPVRl8UOVWCNwTX3VI+Wa5LqMQmn1PpmqF+JgczCXrfaZWkomlPxgOwroM1n3v+RA==", "anotherUserApiKey123", "anotheruser" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Rooms",
+                columns: new[] { "Id", "BroadcasterId", "CreatedAt", "EndedAt", "Name", "Status" },
+                values: new object[,]
+                {
+                    { 1, 1, new DateTime(2025, 7, 21, 16, 2, 34, 562, DateTimeKind.Utc).AddTicks(2394), null, "Room 1", 1 },
+                    { 2, 1, new DateTime(2025, 7, 21, 15, 2, 34, 562, DateTimeKind.Utc).AddTicks(2402), null, "Room 2", 1 },
+                    { 3, 1, new DateTime(2025, 7, 21, 14, 2, 34, 562, DateTimeKind.Utc).AddTicks(2404), null, "Room 3", 1 },
+                    { 4, 1, new DateTime(2025, 7, 21, 13, 2, 34, 562, DateTimeKind.Utc).AddTicks(2405), null, "Room 4", 1 },
+                    { 5, 1, new DateTime(2025, 7, 21, 12, 2, 34, 562, DateTimeKind.Utc).AddTicks(2406), null, "Room 5", 1 },
+                    { 6, 1, new DateTime(2025, 7, 21, 11, 2, 34, 562, DateTimeKind.Utc).AddTicks(2424), new DateTime(2025, 7, 21, 14, 2, 34, 562, DateTimeKind.Utc).AddTicks(2419), "Room 6", 3 },
+                    { 7, 1, new DateTime(2025, 7, 21, 10, 2, 34, 562, DateTimeKind.Utc).AddTicks(2425), new DateTime(2025, 7, 21, 13, 32, 34, 562, DateTimeKind.Utc).AddTicks(2424), "Room 7", 3 },
+                    { 8, 1, new DateTime(2025, 7, 21, 9, 2, 34, 562, DateTimeKind.Utc).AddTicks(2427), new DateTime(2025, 7, 21, 13, 2, 34, 562, DateTimeKind.Utc).AddTicks(2426), "Room 8", 3 },
+                    { 9, 1, new DateTime(2025, 7, 21, 8, 2, 34, 562, DateTimeKind.Utc).AddTicks(2429), new DateTime(2025, 7, 21, 12, 32, 34, 562, DateTimeKind.Utc).AddTicks(2427), "Room 9", 3 },
+                    { 10, 1, new DateTime(2025, 7, 21, 7, 2, 34, 562, DateTimeKind.Utc).AddTicks(2434), new DateTime(2025, 7, 21, 12, 2, 34, 562, DateTimeKind.Utc).AddTicks(2430), "Room 10", 3 }
                 });
 
             migrationBuilder.CreateIndex(

@@ -38,6 +38,12 @@
     const chatSendButton = document.getElementById('chat-send-button');
     const recordBtn = document.getElementById('record-button');
 
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const showRegisterLink = document.getElementById('show-register-link');
+    const showLoginLink = document.getElementById('show-login-link');
+    const registerButton = document.getElementById('register-button');
+
     // Room Management & Search Elements
     const roomManagementSection = document.getElementById('room-management-section');
     const roomListContainer = document.getElementById('room-list');
@@ -110,6 +116,18 @@
         radio.addEventListener('change', () => {
             ipCameraSection.classList.toggle('hidden', document.querySelector('input[name="cameraSource"]:checked').value !== 'ip');
         });
+    });
+
+    showRegisterLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+    });
+
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
     });
 
     // Room Management & Search Listeners
@@ -467,5 +485,48 @@
         msgDiv.classList.toggle('other', !isSelf);
         msgDiv.innerHTML = `<span class="font-bold block">${isSelf ? "You" : user}</span> ${message}`;
         chatMessages.insertBefore(msgDiv, chatMessages.firstChild);
+    }
+
+    // New function to handle registration
+    async function handleRegister() {
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+        const registerError = document.getElementById('register-error');
+        registerError.textContent = '';
+
+        if (!username || !password) {
+            registerError.textContent = 'Username and password are required.';
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            registerError.textContent = 'Passwords do not match.';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Username: username, Password: password })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Registration failed.');
+            }
+
+            alert('Registration successful! Please log in.');
+            // Switch back to the login form
+            document.getElementById('register-username').value = '';
+            document.getElementById('register-password').value = '';
+            document.getElementById('register-confirm-password').value = '';
+            showLoginLink.click();
+
+        } catch (error) {
+            registerError.textContent = error.message;
+            console.error('Registration failed:', error);
+        }
     }
 })();

@@ -2,7 +2,7 @@
 using gstream.Models;
 using gstream.Services;
 using System.Threading.Tasks;
-using gstream.Models.Data;     
+using gstream.Models.Data;
 
 namespace gstream.Controllers
 {
@@ -22,12 +22,7 @@ namespace gstream.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (string.IsNullOrEmpty(loginRequest.Username) || string.IsNullOrEmpty(loginRequest.Password))
+            if (!ModelState.IsValid || loginRequest.Username == null || loginRequest.Password == null)
             {
                 return BadRequest(new { message = "Username and password are required." });
             }
@@ -41,6 +36,25 @@ namespace gstream.Controllers
 
             var token = _tokenService.GenerateToken(user);
             return Ok(new { token });
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] LoginRequest registrationRequest)
+        {
+            if (!ModelState.IsValid || registrationRequest.Username == null || registrationRequest.Password == null)
+            {
+                return BadRequest(new { message = "Username and password are required." });
+            }
+
+            var (success, message) = await _userService.RegisterUserAsync(registrationRequest.Username, registrationRequest.Password);
+
+            if (!success)
+            {
+                // 409 Conflict is appropriate if the username is already taken
+                return Conflict(new { message });
+            }
+
+            return StatusCode(201, new { message });
         }
     }
 }

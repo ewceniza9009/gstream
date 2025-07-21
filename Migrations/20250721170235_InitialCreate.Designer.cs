@@ -12,8 +12,8 @@ using gstream.Data;
 namespace gstream.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250721143440_AddRoomManagement")]
-    partial class AddRoomManagement
+    [Migration("20250721170235_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -95,155 +95,155 @@ namespace gstream.Migrations
                         {
                             Id = 1,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 13, 34, 39, 520, DateTimeKind.Utc).AddTicks(6959),
-                            Name = "Dummy Room 1",
+                            CreatedAt = new DateTime(2025, 7, 21, 16, 2, 34, 562, DateTimeKind.Utc).AddTicks(2394),
+                            Name = "Room 1",
                             Status = 1
                         },
                         new
                         {
                             Id = 2,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 12, 34, 39, 520, DateTimeKind.Utc).AddTicks(6967),
-                            Name = "Dummy Room 2",
+                            CreatedAt = new DateTime(2025, 7, 21, 15, 2, 34, 562, DateTimeKind.Utc).AddTicks(2402),
+                            Name = "Room 2",
                             Status = 1
                         },
                         new
                         {
                             Id = 3,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 11, 34, 39, 520, DateTimeKind.Utc).AddTicks(6969),
-                            Name = "Dummy Room 3",
+                            CreatedAt = new DateTime(2025, 7, 21, 14, 2, 34, 562, DateTimeKind.Utc).AddTicks(2404),
+                            Name = "Room 3",
                             Status = 1
                         },
                         new
                         {
                             Id = 4,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 10, 34, 39, 520, DateTimeKind.Utc).AddTicks(6970),
-                            Name = "Dummy Room 4",
+                            CreatedAt = new DateTime(2025, 7, 21, 13, 2, 34, 562, DateTimeKind.Utc).AddTicks(2405),
+                            Name = "Room 4",
                             Status = 1
                         },
                         new
                         {
                             Id = 5,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 9, 34, 39, 520, DateTimeKind.Utc).AddTicks(6972),
-                            Name = "Dummy Room 5",
+                            CreatedAt = new DateTime(2025, 7, 21, 12, 2, 34, 562, DateTimeKind.Utc).AddTicks(2406),
+                            Name = "Room 5",
                             Status = 1
                         },
                         new
                         {
                             Id = 6,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 8, 34, 39, 520, DateTimeKind.Utc).AddTicks(6979),
-                            EndedAt = new DateTime(2025, 7, 21, 11, 34, 39, 520, DateTimeKind.Utc).AddTicks(6974),
-                            Name = "Dummy Room 6",
+                            CreatedAt = new DateTime(2025, 7, 21, 11, 2, 34, 562, DateTimeKind.Utc).AddTicks(2424),
+                            EndedAt = new DateTime(2025, 7, 21, 14, 2, 34, 562, DateTimeKind.Utc).AddTicks(2419),
+                            Name = "Room 6",
                             Status = 3
                         },
                         new
                         {
                             Id = 7,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 7, 34, 39, 520, DateTimeKind.Utc).AddTicks(6980),
-                            EndedAt = new DateTime(2025, 7, 21, 11, 4, 39, 520, DateTimeKind.Utc).AddTicks(6979),
-                            Name = "Dummy Room 7",
+                            CreatedAt = new DateTime(2025, 7, 21, 10, 2, 34, 562, DateTimeKind.Utc).AddTicks(2425),
+                            EndedAt = new DateTime(2025, 7, 21, 13, 32, 34, 562, DateTimeKind.Utc).AddTicks(2424),
+                            Name = "Room 7",
                             Status = 3
                         },
                         new
                         {
                             Id = 8,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 6, 34, 39, 520, DateTimeKind.Utc).AddTicks(6982),
-                            EndedAt = new DateTime(2025, 7, 21, 10, 34, 39, 520, DateTimeKind.Utc).AddTicks(6981),
-                            Name = "Dummy Room 8",
+                            CreatedAt = new DateTime(2025, 7, 21, 9, 2, 34, 562, DateTimeKind.Utc).AddTicks(2427),
+                            EndedAt = new DateTime(2025, 7, 21, 13, 2, 34, 562, DateTimeKind.Utc).AddTicks(2426),
+                            Name = "Room 8",
                             Status = 3
                         },
                         new
                         {
                             Id = 9,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 5, 34, 39, 520, DateTimeKind.Utc).AddTicks(6984),
-                            EndedAt = new DateTime(2025, 7, 21, 10, 4, 39, 520, DateTimeKind.Utc).AddTicks(6982),
-                            Name = "Dummy Room 9",
+                            CreatedAt = new DateTime(2025, 7, 21, 8, 2, 34, 562, DateTimeKind.Utc).AddTicks(2429),
+                            EndedAt = new DateTime(2025, 7, 21, 12, 32, 34, 562, DateTimeKind.Utc).AddTicks(2427),
+                            Name = "Room 9",
                             Status = 3
                         },
                         new
                         {
                             Id = 10,
                             BroadcasterId = 1,
-                            CreatedAt = new DateTime(2025, 7, 21, 4, 34, 39, 520, DateTimeKind.Utc).AddTicks(6987),
-                            EndedAt = new DateTime(2025, 7, 21, 9, 34, 39, 520, DateTimeKind.Utc).AddTicks(6985),
-                            Name = "Dummy Room 10",
+                            CreatedAt = new DateTime(2025, 7, 21, 7, 2, 34, 562, DateTimeKind.Utc).AddTicks(2434),
+                            EndedAt = new DateTime(2025, 7, 21, 12, 2, 34, 562, DateTimeKind.Utc).AddTicks(2430),
+                            Name = "Room 10",
                             Status = 3
                         },
                         new
                         {
                             Id = 11,
-                            CreatedAt = new DateTime(2025, 7, 21, 3, 34, 39, 520, DateTimeKind.Utc).AddTicks(6989),
-                            Name = "Dummy Room 11",
+                            CreatedAt = new DateTime(2025, 7, 21, 6, 2, 34, 562, DateTimeKind.Utc).AddTicks(2435),
+                            Name = "Room 11",
                             Status = 0
                         },
                         new
                         {
                             Id = 12,
-                            CreatedAt = new DateTime(2025, 7, 21, 2, 34, 39, 520, DateTimeKind.Utc).AddTicks(6990),
-                            Name = "Dummy Room 12",
+                            CreatedAt = new DateTime(2025, 7, 21, 5, 2, 34, 562, DateTimeKind.Utc).AddTicks(2437),
+                            Name = "Room 12",
                             Status = 0
                         },
                         new
                         {
                             Id = 13,
-                            CreatedAt = new DateTime(2025, 7, 21, 1, 34, 39, 520, DateTimeKind.Utc).AddTicks(6992),
-                            Name = "Dummy Room 13",
+                            CreatedAt = new DateTime(2025, 7, 21, 4, 2, 34, 562, DateTimeKind.Utc).AddTicks(2438),
+                            Name = "Room 13",
                             Status = 0
                         },
                         new
                         {
                             Id = 14,
-                            CreatedAt = new DateTime(2025, 7, 21, 0, 34, 39, 520, DateTimeKind.Utc).AddTicks(6993),
-                            Name = "Dummy Room 14",
+                            CreatedAt = new DateTime(2025, 7, 21, 3, 2, 34, 562, DateTimeKind.Utc).AddTicks(2439),
+                            Name = "Room 14",
                             Status = 0
                         },
                         new
                         {
                             Id = 15,
-                            CreatedAt = new DateTime(2025, 7, 20, 23, 34, 39, 520, DateTimeKind.Utc).AddTicks(6994),
-                            Name = "Dummy Room 15",
+                            CreatedAt = new DateTime(2025, 7, 21, 2, 2, 34, 562, DateTimeKind.Utc).AddTicks(2440),
+                            Name = "Room 15",
                             Status = 0
                         },
                         new
                         {
                             Id = 16,
-                            CreatedAt = new DateTime(2025, 7, 20, 22, 34, 39, 520, DateTimeKind.Utc).AddTicks(6996),
-                            Name = "Dummy Room 16",
+                            CreatedAt = new DateTime(2025, 7, 21, 1, 2, 34, 562, DateTimeKind.Utc).AddTicks(2442),
+                            Name = "Room 16",
                             Status = 0
                         },
                         new
                         {
                             Id = 17,
-                            CreatedAt = new DateTime(2025, 7, 20, 21, 34, 39, 520, DateTimeKind.Utc).AddTicks(6997),
-                            Name = "Dummy Room 17",
+                            CreatedAt = new DateTime(2025, 7, 21, 0, 2, 34, 562, DateTimeKind.Utc).AddTicks(2443),
+                            Name = "Room 17",
                             Status = 0
                         },
                         new
                         {
                             Id = 18,
-                            CreatedAt = new DateTime(2025, 7, 20, 20, 34, 39, 520, DateTimeKind.Utc).AddTicks(7000),
-                            Name = "Dummy Room 18",
+                            CreatedAt = new DateTime(2025, 7, 20, 23, 2, 34, 562, DateTimeKind.Utc).AddTicks(2445),
+                            Name = "Room 18",
                             Status = 0
                         },
                         new
                         {
                             Id = 19,
-                            CreatedAt = new DateTime(2025, 7, 20, 19, 34, 39, 520, DateTimeKind.Utc).AddTicks(7001),
-                            Name = "Dummy Room 19",
+                            CreatedAt = new DateTime(2025, 7, 20, 22, 2, 34, 562, DateTimeKind.Utc).AddTicks(2446),
+                            Name = "Room 19",
                             Status = 0
                         },
                         new
                         {
                             Id = 20,
-                            CreatedAt = new DateTime(2025, 7, 20, 18, 34, 39, 520, DateTimeKind.Utc).AddTicks(7002),
-                            Name = "Dummy Room 20",
+                            CreatedAt = new DateTime(2025, 7, 20, 21, 2, 34, 562, DateTimeKind.Utc).AddTicks(2447),
+                            Name = "Room 20",
                             Status = 0
                         });
                 });
@@ -283,14 +283,14 @@ namespace gstream.Migrations
                         new
                         {
                             Id = 1,
-                            PasswordHash = "password",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJ2glyJVslV2nenWZpfZlc63iwhoGeKosm5cW2sQ83bH84BZsWwbcTfCivW+/9YaoQ==",
                             UserApiKey = "testUserApiKey",
                             Username = "testuser"
                         },
                         new
                         {
                             Id = 2,
-                            PasswordHash = "anotherpassword",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOPVRl8UOVWCNwTX3VI+Wa5LqMQmn1PpmqF+JgczCXrfaZWkomlPxgOwroM1n3v+RA==",
                             UserApiKey = "anotherUserApiKey123",
                             Username = "anotheruser"
                         });
