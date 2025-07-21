@@ -1,11 +1,11 @@
-﻿using gstream.Models;
-using gstream.Services;
+﻿using gstream.Services;
 using Livekit.Server.Sdk.Dotnet;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;      
+using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using gstream.Models.Data;       
 
 namespace gstream.Controllers
 {
@@ -17,24 +17,27 @@ namespace gstream.Controllers
         private readonly IBroadcastStateService _stateService;
         private readonly LiveKitService _liveKitService;
         private readonly ILogger<BroadcastController> _logger;
+        private readonly IUserService _userService;    
 
         public BroadcastController
         (
             ILogger<BroadcastController> logger,
-            TokenService tokenService, 
-            IBroadcastStateService stateService, 
-            LiveKitService liveKitService
+            TokenService tokenService,
+            IBroadcastStateService stateService,
+            LiveKitService liveKitService,
+            IUserService userService    
         )
         {
             _logger = logger;
             _tokenService = tokenService;
             _stateService = stateService;
-            _liveKitService = liveKitService;            
+            _liveKitService = liveKitService;
+            _userService = userService;    
         }
 
         public class JoinRequest
         {
-            public string Username { get; set; }
+            public string Username { get; set; } = string.Empty;
         }
 
         [HttpPost("join/{roomId}")]
@@ -56,6 +59,7 @@ namespace gstream.Controllers
             }
             var broadcastType = await _stateService.GetBroadcastTypeAsync(roomId);
             var consumerIdentity = request.Username;
+
             if (broadcastType == "sfu")
             {
                 var liveKitToken = _liveKitService.GenerateToken(roomId, consumerIdentity, isBroadcaster: false);
@@ -63,8 +67,14 @@ namespace gstream.Controllers
             }
             else
             {
-                var tempUser = new UserModel { Username = consumerIdentity };
-                var temporaryToken = _tokenService.GenerateToken(tempUser);
+                var user = await _userService.GetUserByUsernameAsync(consumerIdentity);
+
+                if (user == null)
+                {
+                    return Unauthorized(new { message = "Authenticated user could not be found in the database." });
+                }
+
+                var temporaryToken = _tokenService.GenerateToken(user);
                 return Ok(new { broadcastType = "mesh", roomId, signalRHubUrl = "/broadcasthub", token = temporaryToken, username = consumerIdentity, message = "Mesh broadcast found. Use the provided JWT to connect to the SignalR hub." });
             }
         }

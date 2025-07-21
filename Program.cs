@@ -6,9 +6,17 @@ using gstream.Hubs;
 using gstream.Services;
 using gstream.Authentication;
 using StackExchange.Redis;
-using Microsoft.AspNetCore.Authentication;    
+using Microsoft.AspNetCore.Authentication;
+using gstream.Data;
+using Microsoft.EntityFrameworkCore;
+using gstream.Models.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
     ?? throw new InvalidOperationException("Redis connection string is not configured.");
@@ -16,9 +24,11 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Conn
 builder.Services.AddSingleton<IBroadcastStateService, RedisBroadcastStateService>();
 builder.Services.AddSingleton<LiveKitService>();
 
-builder.Services.AddSingleton<IUserService, UserService>();     
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<TokenService>();
+
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -38,7 +48,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            NameClaimType = "name"        
         };
         options.Events = new JwtBearerEvents
         {
@@ -61,7 +72,7 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString, options => {
     options.Configuration.ChannelPrefix = RedisChannel.Literal("gstream:");
 });
-builder.Services.AddSingleton<TokenService>();
+
 
 builder.Services.AddCors(options =>
 {
@@ -78,6 +89,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();
+}
+
 
 app.UseForwardedHeaders();
 if (app.Environment.IsDevelopment())
@@ -97,23 +115,9 @@ app.MapGet("/api/config", (IConfiguration config) => {
 });
 
 app.MapControllers();
-try
-{
-    app.MapHub<StreamingHub>("/streaminghub");
-    app.MapHub<BroadcastHub>("/broadcasthub");
-}
-catch (System.Reflection.ReflectionTypeLoadException ex)
-{
-    Console.WriteLine("=== ReflectionTypeLoadException ===");
-    foreach (var loaderEx in ex.LoaderExceptions)
-    {
-        Console.WriteLine(loaderEx?.Message);
-        if (loaderEx?.InnerException != null)
-            Console.WriteLine("INNER: " + loaderEx.InnerException.Message);
-    }
+app.MapHub<StreamingHub>("/streaminghub");
+app.MapHub<BroadcastHub>("/broadcasthub");
 
-    throw;
-}
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

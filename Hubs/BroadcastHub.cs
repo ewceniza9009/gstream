@@ -24,7 +24,7 @@ namespace gstream.Hubs
             }
             if (broadcastType == "mesh")
             {
-                await _stateService.StartBroadcastAsync(roomId, Context.ConnectionId, broadcastType);
+                await _stateService.StartBroadcastAsync(roomId, Context.UserIdentifier!, broadcastType, Context.ConnectionId);
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
                 await Clients.Caller.SendAsync("BroadcastStarted");
             }
@@ -35,6 +35,9 @@ namespace gstream.Hubs
             if (string.IsNullOrEmpty(roomId) || string.IsNullOrEmpty(message)) return;
 
             var username = Context.User.Identity?.Name ?? $"User-{Context.ConnectionId.Substring(0, 5)}";
+
+            await _stateService.SaveChatMessageAsync(roomId, username, message);
+
             await Clients.Group(roomId).SendAsync("ReceiveChatMessage", username, message);
         }
 
@@ -66,6 +69,7 @@ namespace gstream.Hubs
             await Clients.Client(targetConnectionId).SendAsync("ReceiveIceCandidate", candidate);
         }
 
+
         public override async Task OnDisconnectedAsync(System.Exception? exception)
         {
             var (roomId, isBroadcaster) = await _stateService.GetConnectionInfoAsync(Context.ConnectionId);
@@ -74,8 +78,12 @@ namespace gstream.Hubs
             {
                 if (isBroadcaster)
                 {
-                    await _stateService.EndBroadcastAsync(roomId, Context.ConnectionId);
-                    await Clients.Group(roomId).SendAsync("BroadcastEnded");
+                    var broadcastType = await _stateService.GetBroadcastTypeAsync(roomId);
+                    if (broadcastType == "mesh")
+                    {
+                        await _stateService.EndBroadcastAsync(roomId, Context.UserIdentifier!);
+                        await Clients.Group(roomId).SendAsync("BroadcastEnded");
+                    }
                 }
                 else
                 {

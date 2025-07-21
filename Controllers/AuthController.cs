@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using gstream.Models;     
+using gstream.Models;
 using gstream.Services;
 using System.Threading.Tasks;
+using gstream.Models.Data;     
 
 namespace gstream.Controllers
 {
@@ -23,17 +24,12 @@ namespace gstream.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);       
+                return BadRequest(ModelState);
             }
 
-            if (string.IsNullOrEmpty(loginRequest.Username))
+            if (string.IsNullOrEmpty(loginRequest.Username) || string.IsNullOrEmpty(loginRequest.Password))
             {
-                return BadRequest(new { message = "Username is required." });
-            }
-
-            if (string.IsNullOrEmpty(loginRequest.Password))
-            {
-                return BadRequest(new { message = "Password is required." });
+                return BadRequest(new { message = "Username and password are required." });
             }
 
             var user = await _userService.ValidateUserCredentialsAsync(loginRequest.Username, loginRequest.Password);

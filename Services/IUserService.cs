@@ -1,11 +1,12 @@
-﻿using gstream.Models;
+﻿using gstream.Models.Data;
 using System.Threading.Tasks;
 
 namespace gstream.Services
 {
     public interface IUserService
     {
-        Task<UserModel?> ValidateUserCredentialsAsync(string username, string password);
-        Task<UserModel?> GetUserByApiKeyAsync(string apiKey);
+        Task<User?> ValidateUserCredentialsAsync(string username, string password);
+        Task<User?> GetUserByApiKeyAsync(string apiKey);
+        Task<User?> GetUserByUsernameAsync(string username);
     }
 }

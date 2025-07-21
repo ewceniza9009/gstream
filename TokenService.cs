@@ -2,7 +2,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using gstream.Models;
+using gstream.Models.Data;
 
 namespace gstream.Services
 {
@@ -15,10 +15,10 @@ namespace gstream.Services
             _config = config;
         }
 
-        public string GenerateToken(UserModel user)
+        public string GenerateToken(User user)
         {
             var key = _config["Jwt:Key"]
-                ?? throw new InvalidOperationException("JWT Key is not configured in appsettings.json.");
+                ?? throw new InvalidOperationException("JWT Key is not configured in appsettings.json or user secrets.");
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -26,7 +26,8 @@ namespace gstream.Services
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-                new Claim(ClaimTypes.Name, user.Username),       
+                new Claim(JwtRegisteredClaimNames.Name, user.Username),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

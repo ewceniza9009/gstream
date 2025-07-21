@@ -1,4 +1,7 @@
-﻿using StackExchange.Redis;
+﻿using gstream.Data;
+using gstream.Models.Data;
+using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,15 +12,17 @@ namespace gstream.Services
     {
         private readonly IDatabase _db;
         private readonly IConnectionMultiplexer _redis;
+        private readonly IServiceScopeFactory _scopeFactory;
         private const string BroadcastKeyPrefix = "gstream:broadcast:";
         private const string ConnectionKeyPrefix = "gstream:connection:";
         private const string BroadcastTypeKeySuffix = ":type";
         private static readonly TimeSpan KeyExpiry = TimeSpan.FromHours(4);
 
-        public RedisBroadcastStateService(IConnectionMultiplexer redis)
+        public RedisBroadcastStateService(IConnectionMultiplexer redis, IServiceScopeFactory scopeFactory)
         {
             _redis = redis;
             _db = redis.GetDatabase();
+            _scopeFactory = scopeFactory;
         }
 
         private string GetBroadcastKey(string roomId) => $"{BroadcastKeyPrefix}{roomId}";
@@ -39,34 +44,114 @@ namespace gstream.Services
             return await _db.StringGetAsync(GetBroadcastTypeKey(roomId));
         }
 
-        public Task StartBroadcastAsync(string roomId, string connectionId, string broadcastType)
+        public async Task StartBroadcastAsync(string roomId, string broadcasterIdentity, string broadcastType, string? connectionId = null)
         {
-            var broadcastKey = GetBroadcastKey(roomId);
-            var connectionKey = GetConnectionKey(connectionId);
-            var broadcastTypeKey = GetBroadcastTypeKey(roomId);
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == broadcasterIdentity);
+            if (user == null) throw new InvalidOperationException("Broadcaster user not found.");
+
+            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Name == roomId);
+
+            if (room != null)
+            {
+                room.Status = RoomStatus.Broadcasting;
+                room.BroadcasterId = user.Id;       
+                room.EndedAt = null;      
+            }
+            else
+            {
+                room = new Room
+                {
+                    Name = roomId,
+                    Status = RoomStatus.Broadcasting,
+                    BroadcasterId = user.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Rooms.Add(room);
+            }
+
+            await context.SaveChangesAsync();
+
+            var redisValue = broadcastType == "mesh" && connectionId != null ? connectionId : broadcasterIdentity;
             var batch = _db.CreateBatch();
-            batch.StringSetAsync(broadcastKey, connectionId, KeyExpiry);
-            batch.StringSetAsync(connectionKey, $"broadcaster:{roomId}", KeyExpiry);
-            batch.StringSetAsync(broadcastTypeKey, broadcastType, KeyExpiry);
-
+            batch.StringSetAsync(GetBroadcastKey(roomId), redisValue, KeyExpiry);
+            batch.StringSetAsync(GetBroadcastTypeKey(roomId), broadcastType, KeyExpiry);
+            if (connectionId != null)
+            {
+                batch.StringSetAsync(GetConnectionKey(connectionId), $"broadcaster:{roomId}", KeyExpiry);
+            }
             batch.Execute();
-            return Task.CompletedTask;
         }
 
-        public Task EndBroadcastAsync(string roomId, string connectionId)
+        public async Task EndBroadcastAsync(string roomId, string broadcasterIdentity)
         {
-            var broadcastKey = GetBroadcastKey(roomId);
-            var connectionKey = GetConnectionKey(connectionId);
-            var broadcastTypeKey = GetBroadcastTypeKey(roomId);
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var batch = _db.CreateBatch();
-            batch.KeyDeleteAsync(broadcastKey);
-            batch.KeyDeleteAsync(connectionKey);
-            batch.KeyDeleteAsync(broadcastTypeKey);
+            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Name == roomId && r.Status == RoomStatus.Broadcasting);
+            if (room != null)
+            {
+                var user = await context.Users.FirstOrDefaultAsync(u => u.Username == broadcasterIdentity);
+                if (user != null && room.BroadcasterId == user.Id)
+                {
+                    room.Status = RoomStatus.Ended;
+                    room.EndedAt = DateTime.UtcNow;
+                    await context.SaveChangesAsync();
+                }
+            }
 
-            batch.Execute();
-            return Task.CompletedTask;
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+            var pattern = $"{BroadcastKeyPrefix}{roomId}*";
+            var keysToDelete = server.Keys(pattern: pattern).ToArray();
+            if (keysToDelete.Any())
+            {
+                await _db.KeyDeleteAsync(keysToDelete);
+            }
+        }
+
+        public async Task SaveChatMessageAsync(string roomId, string username, string message)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Name == roomId);
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (room != null && user != null)
+            {
+                var chatMessage = new ChatMessage
+                {
+                    Content = message,
+                    RoomId = room.Id,
+                    UserId = user.Id,
+                    Timestamp = DateTime.UtcNow
+                };
+                context.ChatMessages.Add(chatMessage);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public async Task FlushAllBroadcastsAsync()
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var activeRooms = await context.Rooms.Where(r => r.Status == RoomStatus.Broadcasting).ToListAsync();
+            foreach (var room in activeRooms)
+            {
+                room.Status = RoomStatus.Ended;
+                room.EndedAt = DateTime.UtcNow;
+            }
+            await context.SaveChangesAsync();
+
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+            var keys = server.Keys(pattern: $"{BroadcastKeyPrefix}*").Concat(server.Keys(pattern: $"{ConnectionKeyPrefix}*")).ToArray();
+            if (keys.Any())
+            {
+                await _db.KeyDeleteAsync(keys);
+            }
         }
 
         public async Task AddViewerToBroadcastAsync(string roomId, string connectionId)
@@ -82,34 +167,10 @@ namespace gstream.Services
 
         public async Task<(string? roomId, bool isBroadcaster)> GetConnectionInfoAsync(string connectionId)
         {
-            var connectionKey = GetConnectionKey(connectionId);
-            string? value = await _db.StringGetAsync(connectionKey);
-            if (string.IsNullOrEmpty(value))
-            {
-                return (null, false);
-            }
-
+            string? value = await _db.StringGetAsync(GetConnectionKey(connectionId));
+            if (string.IsNullOrEmpty(value)) return (null, false);
             var parts = value.Split(':', 2);
-            if (parts.Length != 2) return (null, false);
-
-            var role = parts[0];
-            var roomId = parts[1];
-            return (roomId, role == "broadcaster");
-        }
-
-        public async Task FlushAllBroadcastsAsync()
-        {
-            var server = _redis.GetServer(_redis.GetEndPoints().First());
-
-            var broadcastKeys = server.Keys(pattern: $"{BroadcastKeyPrefix}*").ToArray();
-            var connectionKeys = server.Keys(pattern: $"{ConnectionKeyPrefix}*").ToArray();
-
-            var allKeys = broadcastKeys.Concat(connectionKeys).ToArray();
-
-            if (allKeys.Any())
-            {
-                await _db.KeyDeleteAsync(allKeys);
-            }
+            return parts.Length != 2 ? (null, false) : (parts[1], parts[0] == "broadcaster");
         }
     }
 }

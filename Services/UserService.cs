@@ -1,28 +1,39 @@
-﻿using gstream.Models;
-using System.Collections.Generic;
-using System.Linq;
+﻿using gstream.Data;
+using gstream.Models.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
 namespace gstream.Services
 {
     public class UserService : IUserService
     {
-        private static readonly List<UserModel> Users = new List<UserModel>
-        {
-            new UserModel { Username = "testuser", Password = "password", UserApiKey = "testUserApiKey" },
-            new UserModel { Username = "anotheruser", Password = "anotherpassword", UserApiKey = "anotherUserApiKey123" }
-        };
+        private readonly ApplicationDbContext _context;
 
-        public Task<UserModel?> ValidateUserCredentialsAsync(string username, string password)
+        public UserService(ApplicationDbContext context)
         {
-            var user = Users.FirstOrDefault(u => u.Username == username && u.Password == password);
-            return Task.FromResult(user);
+            _context = context;
         }
 
-        public Task<UserModel?> GetUserByApiKeyAsync(string apiKey)
+        public async Task<User?> GetUserByApiKeyAsync(string apiKey)
         {
-            var user = Users.FirstOrDefault(u => u.UserApiKey == apiKey);
-            return Task.FromResult(user);
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserApiKey == apiKey);
+        }
+
+        public async Task<User?> GetUserByUsernameAsync(string username)
+        {
+            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<User?> ValidateUserCredentialsAsync(string username, string password)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (user != null && user.PasswordHash == password)      
+            {
+                return user;
+            }
+
+            return null;
         }
     }
 }
