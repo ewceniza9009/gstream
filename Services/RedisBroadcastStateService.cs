@@ -16,7 +16,7 @@ namespace gstream.Services
         private const string BroadcastKeyPrefix = "gstream:broadcast:";
         private const string ConnectionKeyPrefix = "gstream:connection:";
         private const string BroadcastTypeKeySuffix = ":type";
-        private static readonly TimeSpan KeyExpiry = TimeSpan.FromHours(4);
+        private static readonly TimeSpan KeyExpiry = TimeSpan.FromDays(1);
 
         public RedisBroadcastStateService(IConnectionMultiplexer redis, IServiceScopeFactory scopeFactory)
         {
