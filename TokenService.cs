@@ -28,6 +28,7 @@ namespace gstream.Services
                 new Claim(JwtRegisteredClaimNames.Sub, user.Username),
                 new Claim(JwtRegisteredClaimNames.Name, user.Username),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim("role", user.Role.ToString()),      
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
@@ -35,7 +36,7 @@ namespace gstream.Services
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(30),
+                expires: DateTime.Now.AddMinutes(120),   
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

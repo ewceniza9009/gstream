@@ -1,4 +1,4 @@
-﻿using gstream.Models.Data;       
+﻿using gstream.Models.Data;
 using gstream.Services;
 using Livekit.Server.Sdk.Dotnet;
 using Microsoft.AspNetCore.Authorization;
@@ -18,7 +18,7 @@ namespace gstream.Controllers
         private readonly IBroadcastStateService _stateService;
         private readonly LiveKitService _liveKitService;
         private readonly ILogger<BroadcastController> _logger;
-        private readonly IUserService _userService;    
+        private readonly IUserService _userService;
 
         public BroadcastController
         (
@@ -26,14 +26,14 @@ namespace gstream.Controllers
             TokenService tokenService,
             IBroadcastStateService stateService,
             LiveKitService liveKitService,
-            IUserService userService    
+            IUserService userService
         )
         {
             _logger = logger;
             _tokenService = tokenService;
             _stateService = stateService;
             _liveKitService = liveKitService;
-            _userService = userService;    
+            _userService = userService;
         }
 
         public class JoinRequest
@@ -141,7 +141,7 @@ namespace gstream.Controllers
         }
 
         [HttpPost("flush")]
-        [Authorize(AuthenticationSchemes = "ApiKey")]
+        [Authorize(AuthenticationSchemes = "ApiKey", Roles = "Admin")]
         public async Task<IActionResult> FlushBroadcasts()
         {
             await _stateService.FlushAllBroadcastsAsync();
@@ -156,7 +156,7 @@ namespace gstream.Controllers
             {
                 var message = "Recording is only supported when running on a Linux server with Docker.";
                 _logger.LogWarning(message);
-                return StatusCode(501, new { message });    
+                return StatusCode(501, new { message });
             }
 
             if (!await _stateService.IsBroadcastActiveAsync(roomId))
@@ -167,7 +167,17 @@ namespace gstream.Controllers
             try
             {
                 var egressClient = _liveKitService.CreateEgressClient();
-                var egressInfo = await egressClient.StartRoomCompositeEgress(new RoomCompositeEgressRequest { RoomName = roomId, File = new EncodedFileOutput { FileType = EncodedFileType.Mp4, Filepath = filePath } });
+
+                var egressRequest = new RoomCompositeEgressRequest
+                {
+                    RoomName = roomId,
+                    FileOutputs = {
+                        new EncodedFileOutput { FileType = EncodedFileType.Mp4, Filepath = filePath }
+                    }
+                };
+
+                var egressInfo = await egressClient.StartRoomCompositeEgress(egressRequest);
+
                 return Ok(new { message = "Recording started successfully.", egressId = egressInfo.EgressId });
             }
             catch (Exception ex)

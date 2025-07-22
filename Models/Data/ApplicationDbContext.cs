@@ -1,7 +1,7 @@
 ﻿using gstream.Models.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;     
+using Microsoft.Extensions.Options;
 
 namespace gstream.Data
 {
@@ -23,6 +23,7 @@ namespace gstream.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasIndex(e => e.Username).IsUnique();
+                entity.Property(e => e.Role).HasConversion<string>();
                 entity.HasIndex(e => e.UserApiKey).IsUnique();
             });
 
@@ -43,65 +44,56 @@ namespace gstream.Data
                 new User
                 {
                     Id = 1,
-                    Username = "testuser",
-                    PasswordHash = hasher.HashPassword(null, "password"),
-                    UserApiKey = "testUserApiKey"
+                    Username = "admin",
+                    PasswordHash = hasher.HashPassword(null, "adminpassword"),
+                    UserApiKey = "adminKey_DO_NOT_USE_IN_PROD",
+                    Role = UserRole.Admin,
+                    IsBlocked = false
                 },
                 new User
                 {
                     Id = 2,
-                    Username = "anotheruser",
-                    PasswordHash = hasher.HashPassword(null, "anotherpassword"),
-                    UserApiKey = "anotherUserApiKey123"
+                    Username = "broadcaster1",
+                    PasswordHash = hasher.HashPassword(null, "password"),
+                    UserApiKey = "broadcaster1ApiKey",
+                    Role = UserRole.Broadcaster,
+                    IsBlocked = false
+                },
+                new User
+                {
+                    Id = 3,
+                    Username = "consumer1",
+                    PasswordHash = hasher.HashPassword(null, "password"),
+                    UserApiKey = "consumer1ApiKey",
+                    Role = UserRole.Consumer,
+                    IsBlocked = false
                 }
             );
 
             var roomsToSeed = new List<Room>();
             for (int i = 1; i <= 20; i++)
             {
-                RoomStatus status;
-                int? broadcasterId = null;
-                DateTime? endedAt = null;
-
-                if (i <= 5)
-                {
-                    status = RoomStatus.Broadcasting;
-                    broadcasterId = 1;  
-                }
-                else if (i <= 10)
-                {
-                    status = RoomStatus.Ended;
-                    broadcasterId = 1;  
-                    endedAt = DateTime.UtcNow.AddHours(-i / 2.0);
-                }
-                else
-                {
-                    status = RoomStatus.Open;
-                }
                 roomsToSeed.Add(new Room
                 {
                     Id = i,
-                    Name = $"Room {i}",
-                    Status = status,
-                    CreatedAt = DateTime.UtcNow.AddHours(-i),
-                    EndedAt = endedAt,
-                    BroadcasterId = broadcasterId
+                    Name = $"Public Room {i}",
+                    Status = RoomStatus.Open,
+                    CreatedAt = DateTime.UtcNow.AddHours(-i)
                 });
             }
             modelBuilder.Entity<Room>().HasData(roomsToSeed);
-
 
             modelBuilder.Entity<ChatMessage>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.ChatMessages)
                 .HasForeignKey(m => m.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);        
 
             modelBuilder.Entity<Room>()
                 .HasOne(r => r.Broadcaster)
                 .WithMany(u => u.Rooms)
                 .HasForeignKey(r => r.BroadcasterId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);         
         }
     }
 }

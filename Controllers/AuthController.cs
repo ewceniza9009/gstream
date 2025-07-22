@@ -2,7 +2,8 @@
 using gstream.Models;
 using gstream.Services;
 using System.Threading.Tasks;
-using gstream.Models.Data;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace gstream.Controllers
 {
@@ -31,7 +32,7 @@ namespace gstream.Controllers
 
             if (user == null)
             {
-                return Unauthorized(new { message = "Invalid username or password." });
+                return Unauthorized(new { message = "Invalid username or password, or account is blocked." });
             }
 
             var token = _tokenService.GenerateToken(user);
@@ -54,6 +55,31 @@ namespace gstream.Controllers
             }
 
             return StatusCode(201, new { message });
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var (success, message) = await _userService.ChangePasswordAsync(userId, request.OldPassword, request.NewPassword);
+
+            if (!success)
+            {
+                return BadRequest(new { message });
+            }
+
+            return Ok(new { message });
         }
     }
 }

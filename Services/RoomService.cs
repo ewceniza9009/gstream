@@ -2,6 +2,7 @@
 using gstream.Models;
 using gstream.Models.Data;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,13 +22,13 @@ namespace gstream.Services
         {
             if (await _context.Rooms.AnyAsync(r => r.Name == name))
             {
-                return null;      
+                return null;
             }
 
             var room = new Room
             {
                 Name = name,
-                Status = RoomStatus.Open,       
+                Status = RoomStatus.Open,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -53,7 +54,7 @@ namespace gstream.Services
         public async Task<IEnumerable<RoomDto>> GetAllRoomsAsync()
         {
             var rooms = await _context.Rooms
-                .Include(r => r.Broadcaster)    
+                .Include(r => r.Broadcaster)
                 .OrderBy(r => r.Name)
                 .ToListAsync();
 
@@ -79,13 +80,32 @@ namespace gstream.Services
 
             if (await _context.Rooms.AnyAsync(r => r.Name == name && r.Id != id))
             {
-                return null;    
+                // This indicates a name conflict. You might want to return a specific error.
+                return null;
             }
 
             room.Name = name;
             await _context.SaveChangesAsync();
 
             return MapToDto(room);
+        }
+
+        // Implementation for the new method
+        public async Task<IEnumerable<ChatMessageDto>> GetChatHistoryAsync(string roomName)
+        {
+            return await _context.ChatMessages
+                .AsNoTracking()
+                .Where(m => m.Room.Name == roomName)
+                .OrderByDescending(m => m.Timestamp)
+                .Take(50) // Get the last 50 messages
+                .OrderBy(m => m.Timestamp) // Re-order them chronologically
+                .Select(m => new ChatMessageDto
+                {
+                    Username = m.User.Username,
+                    Content = m.Content,
+                    Timestamp = m.Timestamp
+                })
+                .ToListAsync();
         }
 
         private RoomDto MapToDto(Room room)

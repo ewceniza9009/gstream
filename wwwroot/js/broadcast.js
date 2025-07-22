@@ -14,47 +14,46 @@
 
     // --- DOM Elements ---
     const loginSection = document.getElementById('login-section');
-    const roleSection = document.getElementById('role-section');
     const streamingSection = document.getElementById('streaming-section');
+    const broadcastDashboard = document.getElementById('broadcast-dashboard');
+    const roomSelectionSection = document.getElementById('room-selection-section');
+    const configureSection = document.getElementById('configure-section');
+
     const loginButton = document.getElementById('login-button');
+    const registerButton = document.getElementById('register-button');
+    const logoutButton = document.getElementById('logout-button');
+    const adminLink = document.getElementById('admin-link');
+    const navLinks = document.getElementById('nav-links');
+
     const startBroadcastBtn = document.getElementById('start-broadcast-button');
-    const viewBroadcastBtn = document.getElementById('view-broadcast-button');
     const leaveBtn = document.getElementById('leave-button');
-    const logoutButtonRole = document.getElementById('logout-button-role');
-    const logoutButtonStreaming = document.getElementById('logout-button-streaming');
-    const localVideoContainer = document.getElementById('local-video-container');
-    const remoteVideoContainer = document.getElementById('remote-video-container');
+    const recordBtn = document.getElementById('record-button');
+
     const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
+    const localVideoContainer = document.getElementById('local-video-container');
     const statusDiv = document.getElementById('status');
-    const roomIdInput = document.getElementById('room-id');
+    const selectedRoomNameSpan = document.getElementById('selected-room-name');
+    const roomIdInput = document.getElementById('room-id'); // This is a hidden input now
+
+    const roomSearchInput = document.getElementById('room-search-input');
+    const roomList = document.getElementById('room-list');
+    const backToRoomsBtn = document.getElementById('back-to-rooms-btn');
+
     const cameraSourceRadios = document.querySelectorAll('input[name="cameraSource"]');
     const ipCameraSection = document.getElementById('ip-camera-section');
     const ipCameraUrlInput = document.getElementById('ip-camera-url');
-    const flushBroadcastsBtn = document.getElementById('flush-broadcasts-button');
+
     const chatSection = document.getElementById('chat-section');
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatSendButton = document.getElementById('chat-send-button');
-    const recordBtn = document.getElementById('record-button');
 
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
+    const loginHeader = document.getElementById('login-header');
+    const dashboardHeader = document.getElementById('dashboard-header');
     const showRegisterLink = document.getElementById('show-register-link');
     const showLoginLink = document.getElementById('show-login-link');
-    const registerButton = document.getElementById('register-button');
-
-    // Room Management & Search Elements
-    const roomManagementSection = document.getElementById('room-management-section');
-    const roomListContainer = document.getElementById('room-list');
-    const createRoomBtn = document.getElementById('create-room-btn');
-    const roomSearchInput = document.getElementById('room-search-input');
-    const roomModal = document.getElementById('room-modal');
-    const roomModalTitle = document.getElementById('room-modal-title');
-    const roomModalForm = document.getElementById('room-modal-form');
-    const roomNameInputModal = document.getElementById('room-name-modal');
-    const roomIdInputModal = document.getElementById('room-id-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
 
     // --- State Variables ---
     let jwtToken;
@@ -66,7 +65,7 @@
     let livekitRoom;
     let broadcastType;
     let myUsername;
-    let allRooms = []; // To store the master list of rooms for searching
+    let allRooms = [];
 
     const iceServers = {
         iceServers: [
@@ -80,16 +79,18 @@
 
     // --- Event Listeners ---
     loginButton.addEventListener('click', handleLogin);
+    registerButton.addEventListener('click', handleRegister);
+    logoutButton.addEventListener('click', handleLogout);
     startBroadcastBtn.addEventListener('click', startBroadcast);
-    viewBroadcastBtn.addEventListener('click', viewBroadcast);
     leaveBtn.addEventListener('click', handleLeave);
-    logoutButtonRole.addEventListener('click', handleLogout);
-    logoutButtonStreaming.addEventListener('click', handleLogout);
-    flushBroadcastsBtn.addEventListener('click', handleFlushBroadcasts);
+    roomSearchInput.addEventListener('input', handleSearch);
+    backToRoomsBtn.addEventListener('click', showRoomSelection);
+
     chatSendButton.addEventListener('click', sendChatMessage);
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') sendChatMessage();
     });
+
     recordBtn.addEventListener('click', async () => {
         if (!currentRoomId) {
             alert("You must start a broadcast before you can record.");
@@ -130,12 +131,24 @@
         loginForm.classList.remove('hidden');
     });
 
-    // Room Management & Search Listeners
-    createRoomBtn.addEventListener('click', () => openRoomModal());
-    closeModalBtn.addEventListener('click', () => closeRoomModal());
-    roomModalForm.addEventListener('submit', handleSaveRoom);
-    roomSearchInput.addEventListener('input', handleSearch);
+    // --- Helper Functions ---
+    function parseJwt(token) {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+            return null;
+        }
+    }
 
+    function updateNav() {
+        if (!jwtToken) return;
+        const decodedToken = parseJwt(jwtToken);
+        if (decodedToken && decodedToken.role === 'Admin') {
+            adminLink.classList.remove('hidden');
+        } else {
+            adminLink.classList.add('hidden');
+        }
+    }
 
     // --- Authentication & State ---
     async function handleLogin() {
@@ -159,10 +172,30 @@
             localStorage.setItem('myUsername', myUsername);
 
             document.getElementById('password').value = '';
+
+            // --- START: Corrected Role Logic ---
+            loginHeader.classList.add('hidden');
             loginSection.classList.add('hidden');
-            roleSection.classList.remove('hidden');
-            roomManagementSection.classList.remove('hidden');
-            await fetchAndRenderRooms();
+            dashboardHeader.classList.remove('hidden');
+
+            const decodedToken = parseJwt(jwtToken);
+            if (decodedToken && decodedToken.role === 'Consumer') {
+                // For consumers, just show the header but not the broadcast rooms
+                broadcastDashboard.innerHTML = `
+                <div class="text-center p-8 bg-gray-800 rounded-lg">
+                    <h3 class="text-2xl font-semibold text-yellow-400">Access Denied</h3>
+                    <p class="text-gray-300 mt-2">Your account does not have permission to broadcast.</p>
+                    <p class="text-gray-300 mt-1">You can manage your account using the links in the header.</p>
+                </div>`;
+                broadcastDashboard.classList.remove('hidden');
+            } else {
+                // For Admins/Broadcasters, show the rooms
+                broadcastDashboard.classList.remove('hidden');
+                await fetchAndRenderRooms();
+            }
+            updateNav();
+            // --- END: Corrected Role Logic ---
+
         } catch (error) {
             loginError.textContent = `Login failed: ${error.message}`;
         }
@@ -172,10 +205,26 @@
         jwtToken = localStorage.getItem('jwtToken');
         myUsername = localStorage.getItem('myUsername');
         if (jwtToken && myUsername) {
+            loginHeader.classList.add('hidden');
             loginSection.classList.add('hidden');
-            roleSection.classList.remove('hidden');
-            roomManagementSection.classList.remove('hidden');
-            fetchAndRenderRooms();
+            dashboardHeader.classList.remove('hidden');
+
+            // --- START: Corrected Role Logic for Page Load ---
+            const decodedToken = parseJwt(jwtToken);
+            if (decodedToken && decodedToken.role === 'Consumer') {
+                broadcastDashboard.innerHTML = `
+                <div class="text-center p-8 bg-gray-800 rounded-lg">
+                    <h3 class="text-2xl font-semibold text-yellow-400">Access Denied</h3>
+                    <p class="text-gray-300 mt-2">Your account does not have permission to broadcast.</p>
+                    <p class="text-gray-300 mt-1">You can manage your account using the links in the header.</p>
+                </div>`;
+                broadcastDashboard.classList.remove('hidden');
+            } else {
+                broadcastDashboard.classList.remove('hidden');
+                fetchAndRenderRooms();
+            }
+            updateNav();
+            // --- END: Corrected Role Logic for Page Load ---
         }
     }
 
@@ -185,16 +234,39 @@
         localStorage.removeItem('myUsername');
         jwtToken = null;
         myUsername = null;
-        loginSection.classList.remove('hidden');
-        roleSection.classList.add('hidden');
+
+        // Hide all dashboard/header elements
+        dashboardHeader.classList.add('hidden');
+        broadcastDashboard.classList.add('hidden');
         streamingSection.classList.add('hidden');
-        roomManagementSection.classList.add('hidden');
+
+        // Show all login elements
+        loginHeader.classList.remove('hidden');
+        loginSection.classList.remove('hidden');
+
+        // REMOVE THIS LINE
+        // showRoomSelection(); 
     }
 
+    // --- Broadcaster UI Flow ---
+    function showRoomSelection() {
+        configureSection.classList.add('hidden');
+        roomSelectionSection.classList.remove('hidden');
+        streamingSection.classList.add('hidden');
 
-    // --- Room Management & Search ---
+        // REMOVE THIS LINE
+        // broadcastDashboard.classList.remove('hidden');
+    }
+
+    function showConfigureSection(roomName) {
+        roomSelectionSection.classList.add('hidden');
+        configureSection.classList.remove('hidden');
+        selectedRoomNameSpan.textContent = roomName;
+        roomIdInput.value = roomName; // The hidden input
+    }
+
     async function fetchAndRenderRooms() {
-        roomListContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center">Loading rooms...</p>';
+        roomList.innerHTML = '<p class="text-gray-400 col-span-full text-center">Loading rooms...</p>';
         try {
             const response = await fetch(`${API_URL}/api/rooms`, {
                 headers: { 'Authorization': `Bearer ${jwtToken}` }
@@ -203,42 +275,42 @@
             allRooms = await response.json();
             renderRoomList(allRooms);
         } catch (error) {
-            roomListContainer.innerHTML = `<p class="text-red-400 p-4 col-span-full">Could not load rooms.</p>`;
+            roomList.innerHTML = `<p class="text-red-400 p-4 col-span-full">${error.message}</p>`;
         }
     }
 
     function renderRoomList(rooms) {
-        roomListContainer.innerHTML = '';
+        roomList.innerHTML = '';
         if (rooms.length === 0) {
-            roomListContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center">No rooms match your search.</p>';
+            roomList.innerHTML = '<p class="text-gray-400 col-span-full text-center">No rooms available.</p>';
             return;
         }
         rooms.forEach(room => {
-            const statusColors = { 'Broadcasting': 'bg-green-200 text-green-800', 'Open': 'bg-blue-200 text-blue-800', 'Ended': 'bg-gray-200 text-gray-800' };
-            const statusColor = statusColors[room.status] || 'bg-yellow-200 text-yellow-800';
+            const statusColors = { 'Broadcasting': 'bg-red-500', 'Open': 'bg-green-500', 'Ended': 'bg-gray-500' };
+            const statusColor = statusColors[room.status] || 'bg-yellow-500';
+            const isBroadcasting = room.status === 'Broadcasting';
+
             const card = document.createElement('div');
             card.className = 'bg-gray-700 rounded-lg p-4 flex flex-col justify-between shadow-md';
             card.innerHTML = `
                 <div>
                     <div class="flex justify-between items-start">
                         <h4 class="text-lg font-bold text-white break-all pr-2">${room.name}</h4>
-                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${statusColor} whitespace-nowrap">${room.status}</span>
+                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${statusColor} text-white whitespace-nowrap">${room.status}</span>
                     </div>
-                    <p class="text-sm text-gray-400 mt-1">${room.broadcasterUsername ? `Broadcaster: ${room.broadcasterUsername}` : 'No active broadcaster'}</p>
+                    <p class="text-sm text-gray-400 mt-1">${room.broadcasterUsername ? `Broadcaster: ${room.broadcasterUsername}` : 'Ready to stream'}</p>
                 </div>
                 <div class="flex justify-end gap-2 mt-4">
-                    <button data-room-name="${room.name}" class="use-room-btn bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded text-sm">Use</button>
-                    <button data-room-id="${room.id}" data-room-name="${room.name}" class="edit-room-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-sm"><i class="fas fa-pencil-alt"></i></button>
-                    <button data-room-id="${room.id}" class="delete-room-btn bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"><i class="fas fa-trash-alt"></i></button>
+                    <button data-room-name="${room.name}" class="use-room-btn bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded text-sm" ${isBroadcasting ? 'disabled' : ''}>
+                        ${isBroadcasting ? 'In Use' : 'Use'}
+                    </button>
                 </div>`;
-            roomListContainer.appendChild(card);
+            roomList.appendChild(card);
         });
+
         document.querySelectorAll('.use-room-btn').forEach(btn => btn.addEventListener('click', (e) => {
-            roomIdInput.value = e.currentTarget.dataset.roomName;
-            roomIdInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showConfigureSection(e.currentTarget.dataset.roomName);
         }));
-        document.querySelectorAll('.edit-room-btn').forEach(btn => btn.addEventListener('click', (e) => openRoomModal(e.currentTarget.dataset.roomId, e.currentTarget.dataset.roomName)));
-        document.querySelectorAll('.delete-room-btn').forEach(btn => btn.addEventListener('click', (e) => handleDeleteRoom(e.currentTarget.dataset.roomId)));
     }
 
     function handleSearch(e) {
@@ -247,75 +319,28 @@
         renderRoomList(filteredRooms);
     }
 
-    function openRoomModal(id = null, name = '') {
-        roomModalForm.reset();
-        roomIdInputModal.value = id;
-        roomNameInputModal.value = name;
-        roomModalTitle.textContent = id ? 'Edit Room' : 'Create Room';
-        roomModal.classList.remove('hidden');
-        roomModal.classList.add('flex');
-    }
-
-    function closeRoomModal() {
-        roomModal.classList.add('hidden');
-        roomModal.classList.remove('flex');
-    }
-
-    async function handleSaveRoom(e) {
-        e.preventDefault();
-        const id = roomIdInputModal.value;
-        const name = roomNameInputModal.value;
-        const url = id ? `${API_URL}/api/rooms/${id}` : `${API_URL}/api/rooms`;
-        const method = id ? 'PUT' : 'POST';
-        try {
-            const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` }, body: JSON.stringify({ name }) });
-            if (!response.ok) throw new Error((await response.json()).message || `Failed to save room.`);
-            closeRoomModal();
-            await fetchAndRenderRooms();
-        } catch (error) { alert(error.message); }
-    }
-
-    async function handleDeleteRoom(id) {
-        if (!confirm('Are you sure you want to delete this room?')) return;
-        try {
-            const response = await fetch(`${API_URL}/api/rooms/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${jwtToken}` } });
-            if (!response.ok) throw new Error((await response.json()).message || 'Failed to delete room.');
-            await fetchAndRenderRooms();
-        } catch (error) { alert(error.message); }
-    }
-
-
     // --- Broadcasting ---
     async function startBroadcast() {
         userRole = 'broadcaster';
         currentRoomId = roomIdInput.value;
         broadcastType = document.querySelector('input[name="broadcastType"]:checked').value;
-        if (!currentRoomId) { alert('Please enter a Room ID.'); return; }
+        if (!currentRoomId) { alert('Please select a room first.'); return; }
+
         try {
             localStream = await getCameraStream();
             localVideo.srcObject = localStream;
             switchToStreamingView();
+
             if (broadcastType === 'sfu') {
                 await startSfuBroadcast();
             } else {
                 await startMeshBroadcast();
             }
-            await fetchAndRenderRooms();
+            await fetchAndRenderRooms(); // Refresh room list to show new status
         } catch (error) {
             alert(error.message || 'Could not start broadcast.');
             handleLeave();
         }
-    }
-
-    async function viewBroadcast() {
-        userRole = 'viewer';
-        currentRoomId = roomIdInput.value;
-        if (!currentRoomId) { alert('Please enter a Room ID to view.'); return; }
-        alert("Viewing is handled on the consumer page. This is for local mesh testing only.");
-        if (!await initializeSignalR()) { alert('Failed to connect to server.'); return; }
-        switchToStreamingView();
-        await signalRConnection.invoke('ViewBroadcast', currentRoomId);
-        statusDiv.textContent = `Viewing room: ${currentRoomId}`;
     }
 
     async function startMeshBroadcast() {
@@ -330,16 +355,24 @@
             const response = await fetch(`${API_URL}/api/broadcast/start/sfu/${currentRoomId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${jwtToken}` } });
             if (!response.ok) throw new Error((await response.json()).message || 'Failed to initialize SFU broadcast.');
             const { liveKitUrl, token, username } = await response.json();
+
             myUsername = username;
             livekitRoom = new LivekitClient.Room();
             await livekitRoom.connect(liveKitUrl, token);
+
             statusDiv.textContent = `Broadcasting to room: ${currentRoomId} (SFU)`;
+
             if (localStream.getVideoTracks().length > 0) await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0]);
             if (localStream.getAudioTracks().length > 0) await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
+
             livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload) => {
                 const message = JSON.parse(new TextDecoder().decode(payload));
                 displayChatMessage(message.username, message.text, false);
             });
+
+            // Fetch and render chat history on join
+            fetchAndRenderChatHistory(currentRoomId);
+
         } catch (error) {
             console.error('SFU broadcast failed:', error);
             throw error;
@@ -357,8 +390,15 @@
         if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
         Object.values(peerConnections).forEach(pc => pc.close());
         peerConnections = {};
-        switchToRoleSelection();
-        await fetchAndRenderRooms();
+
+        // --- Start of Fix ---
+        // Hide the streaming view specifically
+        streamingSection.classList.add('hidden');
+        // Show the main dashboard container and the room selection view within it
+        broadcastDashboard.classList.remove('hidden');
+        showRoomSelection();
+        // --- End of Fix ---
+        await fetchAndRenderRooms(); // Refresh room list after leaving
     }
 
 
@@ -384,9 +424,12 @@
             await Object.values(peerConnections)[0]?.addIceCandidate(new RTCIceCandidate(candidate));
         });
         signalRConnection.on('BroadcastEnded', () => { alert('The broadcast has ended.'); handleLeave(); });
-        signalRConnection.on('BroadcastExists', () => { alert('Error: A broadcast is already active in this room.'); switchToRoleSelection(); });
+        signalRConnection.on('BroadcastExists', () => { alert('Error: A broadcast is already active in this room.'); showRoomSelection(); });
+
         try {
             await signalRConnection.start();
+            // Fetch and render chat history on join for mesh
+            fetchAndRenderChatHistory(currentRoomId);
             return true;
         } catch (error) { return false; }
     }
@@ -397,8 +440,6 @@
         pc.onicecandidate = event => { if (event.candidate) signalRConnection.invoke('SendIceCandidate', peerId, event.candidate); };
         if (userRole === 'broadcaster') {
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-        } else {
-            pc.ontrack = event => { remoteVideo.srcObject = event.streams[0]; };
         }
         pc.onconnectionstatechange = () => { if (pc.connectionState === 'connected') statusDiv.textContent = 'Broadcasting live! (Mesh)'; };
         return pc;
@@ -431,38 +472,26 @@
         }
     }
 
-    async function handleFlushBroadcasts() {
-        const apiKey = prompt("Please enter the Admin API Key to flush all broadcasts:");
-        if (!apiKey || !confirm("Are you sure you want to end ALL active broadcasts?")) return;
-        try {
-            const response = await fetch(`${API_URL}/api/broadcast/flush`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey } });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Failed to flush broadcasts.');
-            alert(result.message || 'Successfully flushed all broadcasts.');
-            await fetchAndRenderRooms();
-        } catch (error) {
-            alert(`Error: ${error.message}`);
-        }
-    }
-
     function switchToStreamingView() {
-        roleSection.classList.add('hidden');
+        broadcastDashboard.classList.add('hidden');
         streamingSection.classList.remove('hidden');
         chatSection.classList.remove('hidden');
-        userRole === 'broadcaster' ? localVideoContainer.classList.remove('hidden') : remoteVideoContainer.classList.remove('hidden');
+        localVideoContainer.classList.remove('hidden');
     }
 
-    function switchToRoleSelection() {
-        streamingSection.classList.add('hidden');
-        roleSection.classList.remove('hidden');
-        localVideoContainer.classList.add('hidden');
-        remoteVideoContainer.classList.add('hidden');
-        chatSection.classList.add('hidden');
-        statusDiv.textContent = '';
-        remoteVideo.srcObject = null;
-        localVideo.srcObject = null;
-        recordBtn.disabled = false;
-        recordBtn.textContent = 'Start Recording';
+    // --- Chat ---
+    async function fetchAndRenderChatHistory(roomId) {
+        chatMessages.innerHTML = '';
+        try {
+            const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, {
+                headers: { 'Authorization': `Bearer ${jwtToken}` }
+            });
+            if (!response.ok) return;
+            const history = await response.json();
+            history.forEach(msg => displayChatMessage(msg.username, msg.content, msg.username === myUsername));
+        } catch (e) {
+            console.error("Could not fetch chat history", e);
+        }
     }
 
     function sendChatMessage() {
@@ -484,10 +513,12 @@
         msgDiv.classList.toggle('self', isSelf);
         msgDiv.classList.toggle('other', !isSelf);
         msgDiv.innerHTML = `<span class="font-bold block">${isSelf ? "You" : user}</span> ${message}`;
-        chatMessages.insertBefore(msgDiv, chatMessages.firstChild);
+        // Insert at the bottom, and scroll down
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // New function to handle registration
+    // --- Registration ---
     async function handleRegister() {
         const username = document.getElementById('register-username').value;
         const password = document.getElementById('register-password').value;
@@ -499,7 +530,6 @@
             registerError.textContent = 'Username and password are required.';
             return;
         }
-
         if (password !== confirmPassword) {
             registerError.textContent = 'Passwords do not match.';
             return;
@@ -518,7 +548,6 @@
             }
 
             alert('Registration successful! Please log in.');
-            // Switch back to the login form
             document.getElementById('register-username').value = '';
             document.getElementById('register-password').value = '';
             document.getElementById('register-confirm-password').value = '';

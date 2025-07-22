@@ -8,7 +8,7 @@ namespace gstream.Controllers
 {
     [Route("api/rooms")]
     [ApiController]
-    [Authorize]         
+    [Authorize]
     public class RoomController : ControllerBase
     {
         private readonly IRoomService _roomService;
@@ -28,12 +28,11 @@ namespace gstream.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateRoom([FromBody] RoomRequest request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var newRoom = await _roomService.CreateRoomAsync(request.Name);
             if (newRoom == null)
             {
@@ -46,21 +45,23 @@ namespace gstream.Controllers
         public async Task<IActionResult> GetRoom(int id)
         {
             var room = await _roomService.GetRoomByIdAsync(id);
-            if (room == null)
-            {
-                return NotFound();
-            }
+            if (room == null) return NotFound();
             return Ok(room);
         }
 
+        [HttpGet("{roomId}/chat")]
+        public async Task<IActionResult> GetChatHistory(string roomId)
+        {
+            var messages = await _roomService.GetChatHistoryAsync(roomId);
+            return Ok(messages);
+        }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateRoom(int id, [FromBody] RoomRequest request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var updatedRoom = await _roomService.UpdateRoomAsync(id, request.Name);
             if (updatedRoom == null)
             {
@@ -70,6 +71,7 @@ namespace gstream.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteRoom(int id)
         {
             var success = await _roomService.DeleteRoomAsync(id);

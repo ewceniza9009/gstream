@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-g" />
+    <title>GSTREAM - My Account</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-2xl p-4 md:p-8">
+        <h1 class="text-4xl font-bold text-center mb-2 text-cyan-400">My Account</h1>
+        <p class="text-center mb-6"><a href="/broadcast.html" class="text-cyan-400 hover:underline">&larr; Back to Dashboard</a></p>
+
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Change Password</h2>
+            <form id="change-password-form" class="space-y-4">
+                <input type="password" id="old-password" placeholder="Current Password" required class="w-full bg-gray-700 p-3 rounded-md border border-gray-600">
+                <input type="password" id="new-password" placeholder="New Password" required class="w-full bg-gray-700 p-3 rounded-md border border-gray-600">
+                <input type="password" id="confirm-new-password" placeholder="Confirm New Password" required class="w-full bg-gray-700 p-3 rounded-md border border-gray-600">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-md">Update Password</button>
+            </form>
+            <p id="password-message" class="mt-4 text-center h-5"></p>
+        </div>
+
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl">
+            <h2 class="text-2xl font-semibold mb-4">API Key Management</h2>
+            <p class="text-gray-400 mb-2">Your API key is used to connect to streams via the consumer page or external applications.</p>
+            <div class="bg-gray-700 p-3 rounded-md flex items-center justify-between">
+                <code id="api-key-display" class="text-yellow-300">Loading...</code>
+                <button id="copy-key-btn" title="Copy to Clipboard" class="text-gray-400 hover:text-white"><i class="far fa-copy"></i></button>
+            </div>
+            <button id="regenerate-key-btn" class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-md">Regenerate API Key</button>
+            <p class="text-xs text-gray-500 mt-2">Warning: Regenerating your key will invalidate the old one immediately.</p>
+            <p id="key-message" class="mt-4 text-center h-5 text-green-400"></p>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    <script src="/js/account.js"></script>
+</body>
+</html>

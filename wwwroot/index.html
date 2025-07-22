@@ -7,33 +7,43 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #111827;      
+            background-image: radial-gradient(circle at top, #1f2937, #111827);
         }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
 
-    <div id="app-container" class="w-full max-w-4xl p-4 md:p-8 text-center">
-        <h1 class="text-5xl font-bold mb-4 text-cyan-400">GSTREAM</h1>
-        <p class="text-xl text-gray-300 mb-12">Real-Time Video Streaming</p>
+    <div class="w-full max-w-5xl p-4 md:p-8 text-center">
+        <div class="mb-12">
+            <h1 class="text-5xl md:text-6xl font-bold text-cyan-400 flex items-center justify-center gap-4">
+                <i class="fa-solid fa-satellite-dish"></i>
+                <span>GSTREAM</span>
+            </h1>
+            <p class="text-xl text-gray-400 mt-2 tracking-wider">Real-Time Video Streaming Platform</p>
+        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <a href="/broadcast.html" class="bg-gray-800 p-8 rounded-lg shadow-xl hover:bg-gray-700 hover:ring-2 hover:ring-cyan-500 transition duration-300">
-                <h2 class="text-2xl font-semibold mb-2">📢 Broadcast</h2>
-                <p class="text-gray-400">Stream from your camera to a large audience using a scalable SFU.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <a href="/broadcast.html" class="group bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl ring-1 ring-white/10 shadow-lg hover:ring-cyan-500/50 hover:shadow-cyan-500/20 transition-all duration-300">
+                <h2 class="text-3xl font-semibold mb-2 text-cyan-400"><i class="fa-solid fa-tower-broadcast mr-3"></i>Broadcast</h2>
+                <p class="text-gray-400">Manage rooms and stream your content to a wide audience.</p>
             </a>
 
-            <a href="/consumer.html" class="bg-gray-800 p-8 rounded-lg shadow-xl hover:bg-gray-700 hover:ring-2 hover:ring-yellow-500 transition duration-300">
-                <h2 class="text-2xl font-semibold mb-2">👀 View</h2>
-                <p class="text-gray-400">Watch a live broadcast by entering a Room ID and API Key.</p>
+            <a href="/consumer.html" class="group bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl ring-1 ring-white/10 shadow-lg hover:ring-yellow-500/50 hover:shadow-yellow-500/20 transition-all duration-300">
+                <h2 class="text-3xl font-semibold mb-2 text-yellow-400"><i class="fa-solid fa-eye mr-3"></i>View</h2>
+                <p class="text-gray-400">Watch a live broadcast using a Room ID and API Key.</p>
             </a>
 
-            <a href="/streaming.html" class="bg-gray-800 p-8 rounded-lg shadow-xl hover:bg-gray-700 hover:ring-2 hover:ring-green-500 transition duration-300">
-                <h2 class="text-2xl font-semibold mb-2">🔗 1 on 1 Call</h2>
-                <p class="text-gray-400">Create a private, peer-to-peer video call with one other person.</p>
+            <a href="/streaming.html" class="group bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl ring-1 ring-white/10 shadow-lg hover:ring-green-500/50 hover:shadow-green-500/20 transition-all duration-300">
+                <h2 class="text-3xl font-semibold mb-2 text-green-400"><i class="fa-solid fa-user-group mr-3"></i>1-on-1 Call</h2>
+                <p class="text-gray-400">Create a private, peer-to-peer video call with another person.</p>
             </a>
+
         </div>
     </div>
 

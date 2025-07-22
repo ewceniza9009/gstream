@@ -1,7 +1,10 @@
 ﻿using gstream.Data;
+using gstream.Models;
 using gstream.Models.Data;
-using Microsoft.AspNetCore.Identity;     
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace gstream.Services
@@ -24,7 +27,11 @@ namespace gstream.Services
                 return (false, "Username is already taken.");
             }
 
-            var user = new User { Username = username };
+            var user = new User
+            {
+                Username = username,
+                Role = UserRole.Consumer   
+            };
 
             user.PasswordHash = _passwordHasher.HashPassword(user, password);
             user.UserApiKey = $"gsk_{Guid.NewGuid():N}";
@@ -38,7 +45,7 @@ namespace gstream.Services
         public async Task<User?> ValidateUserCredentialsAsync(string username, string password)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-            if (user == null)
+            if (user == null || user.IsBlocked)
             {
                 return null;
             }
@@ -50,12 +57,92 @@ namespace gstream.Services
 
         public async Task<User?> GetUserByApiKeyAsync(string apiKey)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.UserApiKey == apiKey);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserApiKey == apiKey);
+            return user == null || user.IsBlocked ? null : user;
         }
 
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<(bool Success, string Message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return (false, "User not found.");
+            }
+
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, oldPassword);
+            if (verificationResult == PasswordVerificationResult.Failed)
+            {
+                return (false, "Incorrect old password.");
+            }
+
+            user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+            await _context.SaveChangesAsync();
+            return (true, "Password changed successfully.");
+        }
+
+        public async Task<string?> RegenerateApiKeyAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return null;
+
+            user.UserApiKey = $"gsk_{Guid.NewGuid():N}";
+            await _context.SaveChangesAsync();
+            return user.UserApiKey;
+        }
+
+        public async Task<IEnumerable<UserModel>> GetAllUsersAsync()
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Select(u => new UserModel
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    Role = u.Role.ToString(),
+                    IsBlocked = u.IsBlocked,
+                    UserApiKey = u.UserApiKey
+                })
+                .ToListAsync();
+        }
+
+        public async Task<bool> UpdateUserAsync(int userId, UserModel model)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            if (Enum.TryParse<UserRole>(model.Role, out var newRole))
+            {
+                user.Role = newRole;
+            }
+            user.IsBlocked = model.IsBlocked;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            if (user.Role == UserRole.Admin)
+            {
+                var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
+                if (adminCount <= 1)
+                {
+                    return false;        
+                }
+            }
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
