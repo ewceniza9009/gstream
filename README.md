@@ -181,15 +181,6 @@ gstream
 2. Enter your **API Key** and **Room ID**  
 3. Click **Find and View Stream**
 
----
-
-To show this content as **formatted code** inside a `README.md` (Markdown file), you should wrap the code blocks properly using triple backticks (\`\`\`) and specify the language for syntax highlighting.
-
-Here's how you can format it exactly as you posted:
-
----
-
-````markdown
 ## 🧪 How to restream(Dev)
 
 ### 🎥 Backend
