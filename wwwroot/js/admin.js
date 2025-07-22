@@ -1,21 +1,22 @@
 ﻿(async function () {
     let API_URL;
     let jwtToken;
+    let allRooms = [];                                
+    let allUsers = [];                                
 
-    // --- DOM Elements ---
     const logoutButton = document.getElementById('logout-button');
     const flushBroadcastsBtn = document.getElementById('flush-broadcasts-button');
-    // Room Management
     const roomListContainer = document.getElementById('room-list-container');
     const createRoomBtn = document.getElementById('create-room-btn');
+    const roomSearchInput = document.getElementById('room-search-input');                 
     const roomModal = document.getElementById('room-modal');
     const roomModalTitle = document.getElementById('room-modal-title');
     const roomModalForm = document.getElementById('room-modal-form');
     const roomNameInputModal = document.getElementById('room-name-modal');
     const roomIdInputModal = document.getElementById('room-id-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
-    // User Management
     const userListContainer = document.getElementById('user-list-container');
+    const userSearchInput = document.getElementById('user-search-input');
     const userModal = document.getElementById('user-modal');
     const userModalTitle = document.getElementById('user-modal-title');
     const userModalForm = document.getElementById('user-modal-form');
@@ -26,7 +27,6 @@
     const closeUserModalBtn = document.getElementById('close-user-modal-btn');
 
 
-    // --- Initialization ---
     async function initialize() {
         try {
             const response = await fetch('/api/config');
@@ -40,7 +40,7 @@
 
         jwtToken = localStorage.getItem('jwtToken');
         if (!jwtToken) {
-            window.location.href = '/broadcast.html'; // Redirect if not logged in
+            window.location.href = '/broadcast.html';                     
             return;
         }
 
@@ -49,11 +49,10 @@
 
         if (userRole !== 'Admin') {
             alert('Access Denied: This page is for administrators only.');
-            window.location.href = '/broadcast.html'; // Redirect non-admins
+            window.location.href = '/broadcast.html';         
             return;
         }
 
-        // Add event listeners
         logoutButton.addEventListener('click', handleLogout);
         flushBroadcastsBtn.addEventListener('click', handleFlushBroadcasts);
         createRoomBtn.addEventListener('click', () => openRoomModal());
@@ -61,9 +60,10 @@
         roomModalForm.addEventListener('submit', handleSaveRoom);
         closeUserModalBtn.addEventListener('click', closeUserModal);
         userModalForm.addEventListener('submit', handleSaveUser);
+        roomSearchInput.addEventListener('input', handleRoomSearch);                         
+        userSearchInput.addEventListener('input', handleUserSearch);                         
 
 
-        // Initial data fetch
         await Promise.all([
             fetchAndRenderRooms(),
             fetchAndRenderUsers()
@@ -76,7 +76,6 @@
         window.location.href = '/index.html';
     }
 
-    // --- API Call Helper ---
     async function apiFetch(endpoint, options = {}) {
         const defaultOptions = {
             headers: {
@@ -92,17 +91,25 @@
         return response.status === 204 ? null : response.json();
     }
 
-    // --- Room Management ---
     async function fetchAndRenderRooms() {
         roomListContainer.innerHTML = `<p class="text-gray-400">Loading rooms...</p>`;
         try {
             const rooms = await apiFetch('/api/rooms');
-            renderRoomList(rooms);
+            allRooms = rooms;                 
+            renderRoomList(allRooms);                     
         } catch (error) {
             roomListContainer.innerHTML = `<p class="text-red-400">Could not load rooms: ${error.message}</p>`;
         }
     }
 
+    function handleRoomSearch(e) {
+        const query = e.target.value.toLowerCase();
+        const filteredRooms = allRooms.filter(room =>
+            room.name.toLowerCase().includes(query) ||
+            (room.broadcasterUsername && room.broadcasterUsername.toLowerCase().includes(query))
+        );
+        renderRoomList(filteredRooms);
+    }
     function renderRoomList(rooms) {
         roomListContainer.innerHTML = '';
         if (rooms.length === 0) {
@@ -169,15 +176,23 @@
         } catch (error) { alert(`Delete failed: ${error.message}`); }
     }
 
-    // --- User Management ---
     async function fetchAndRenderUsers() {
         userListContainer.innerHTML = `<p class="text-gray-400">Loading users...</p>`;
         try {
             const users = await apiFetch('/api/admin/users');
-            renderUserList(users);
+            allUsers = users;                 
+            renderUserList(allUsers);                     
         } catch (error) {
             userListContainer.innerHTML = `<p class="text-red-400">Could not load users: ${error.message}</p>`;
         }
+    }
+
+    function handleUserSearch(e) {
+        const query = e.target.value.toLowerCase();
+        const filteredUsers = allUsers.filter(user =>
+            user.username.toLowerCase().includes(query)
+        );
+        renderUserList(filteredUsers);
     }
 
     function renderUserList(users) {
@@ -245,7 +260,6 @@
         } catch (error) { alert(`Delete failed: ${error.message}`); }
     }
 
-    // --- System Actions ---
     async function handleFlushBroadcasts() {
         if (!confirm("Are you sure you want to end ALL active broadcasts? This will disconnect everyone immediately.")) return;
         try {
@@ -268,6 +282,5 @@
         }
     }
 
-    // --- Start Application ---
     initialize();
 })();
