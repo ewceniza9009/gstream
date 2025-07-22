@@ -183,6 +183,106 @@ gstream
 
 ---
 
+To show this content as **formatted code** inside a `README.md` (Markdown file), you should wrap the code blocks properly using triple backticks (\`\`\`) and specify the language for syntax highlighting.
+
+Here's how you can format it exactly as you posted:
+
+---
+
+````markdown
+## 🧪 How to restream(Dev)
+
+### 🎥 Backend
+
+```csharp
+// In the developer's own ASP.NET Core project
+[ApiController]
+[Route("api/stream-proxy")]
+public class StreamProxyController : ControllerBase
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    private const string GStreamApiUrl = "https://YOUR_GSTREAM_URL.com"; // Your service URL
+    private const string MySecretApiKey = "gsk_...the_developers_secret_api_key"; // Their key to YOUR service
+    private const string MyUsernameForGstream = "proxy-user"; // The display name they use
+
+    public StreamProxyController(IHttpClientFactory httpClientFactory)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+
+    [HttpGet("join/{roomName}")]
+    public async Task<IActionResult> JoinStream(string roomName)
+    {
+        var client = _httpClientFactory.CreateClient();
+        
+        // Step 1: Prepare the request to the original gstream service
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{GStreamApiUrl}/api/broadcast/join/{roomName}");
+        request.Headers.Add("X-Api-Key", MySecretApiKey);
+
+        var joinRequestBody = new { username = MyUsernameForGstream };
+        request.Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(joinRequestBody), System.Text.Encoding.UTF8, "application/json");
+
+        // Step 2: Call your gstream service to get a temporary connection token
+        var response = await client.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return StatusCode((int)response.StatusCode, "Could not connect to the stream.");
+        }
+
+        // Step 3: Forward the successful response (containing the token) to your own user
+        var responseBody = await response.Content.ReadAsStringAsync();
+        return Content(responseBody, "application/json");
+    }
+}
+````
+
+### 📢 HTML/Javascript UI
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Our Awesome Stream</title>
+</head>
+<body>
+    <h1>Live Stream</h1>
+    <video id="remoteVideo" autoplay playsinline style="width:100%"></video>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.2.0/dist/livekit-client.umd.min.js"></script>
+    <script>
+        const remoteVideo = document.getElementById('remoteVideo');
+        const roomName = 'Public Room 1'; // The room they want to restream
+
+        async function connectToStream() {
+            try {
+                // Call OWN backend proxy,
+                const response = await fetch(`/api/stream-proxy/join/${roomName}`);
+                const connectionDetails = await response.json();
+
+                // Use token received proxy to connect the LiveKit
+                const livekitRoom = new LivekitClient.Room();
+                await livekitRoom.connect(connectionDetails.liveKitUrl, connectionDetails.token);
+
+                livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+                    if (track.kind === 'video') {
+                        const element = track.attach();
+                        remoteVideo.srcObject = element.srcObject;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Failed to connect to stream via proxy.", error);
+            }
+        }
+
+        connectToStream();
+    </script>
+</body>
+</html>
+```
+---
+
 ## 🔐 Authentication
 
 - **Users:** JWT-based via `AuthController`  
