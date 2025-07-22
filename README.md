@@ -181,7 +181,9 @@ gstream
 2. Enter your **API Key** and **Room ID**  
 3. Click **Find and View Stream**
 
-## 🧪 How to restream(Dev)
+---
+
+## 🧪 How to Restream (Consumer Developer)
 
 ### 🎥 Backend
 
@@ -227,7 +229,6 @@ public class StreamProxyController : ControllerBase
     }
 }
 ````
-
 ### 📢 HTML/Javascript UI
 
 ```html
