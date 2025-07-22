@@ -274,6 +274,30 @@ public class StreamProxyController : ControllerBase
 </html>
 ```
 ---
+## How to use IP Camera
+
+To stream from an IP camera, you need to provide the camera's specific video stream URL, not just its IP address. This URL acts as a direct link to the camera's video feed.
+The most common formats for this are RTSP and MJPEG.
+
+How a User Finds and Uses the Stream URL
+Find the Camera's IP Address: The user first needs to find the camera's local IP address on their network (e.g., 192.168.1.100). This is usually found by looking at the connected devices list in their Wi-Fi router's settings.
+Find the Stream Path: Every camera brand and model has a unique URL path for its video stream. The best way to find this is to search online for "[Camera Brand] [Camera Model] RTSP URL". For example, "Amcrest IP2M-841 RTSP URL".
+Combine and Authenticate: The final URL is a combination of the IP address, the stream path, and often a username and password for the camera itself.
+
+Example
+Let's say a user has:
+Camera IP Address: 192.168.1.123
+Camera Username: admin
+Camera Password: cam_password
+
+After searching online, they find their camera's RTSP path is /cam/realmonitor?channel=1&subtype=0.
+
+The final URL they would enter into the "IP Camera" input field in your application would be:
+rtsp://admin:cam_password@192.168.1.123/cam/realmonitor?channel=1&subtype=0
+
+Pro Tip: Users can test this URL in a media player like VLC (File -> Open Network Stream) to confirm it works before putting it into your application.
+
+---
 
 ## 🔐 Authentication
 
