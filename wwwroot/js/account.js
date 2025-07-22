@@ -2,7 +2,6 @@
     let API_URL;
     let jwtToken;
 
-    // --- DOM Elements ---
     const changePasswordForm = document.getElementById('change-password-form');
     const oldPasswordInput = document.getElementById('old-password');
     const newPasswordInput = document.getElementById('new-password');
@@ -28,7 +27,7 @@
 
         jwtToken = localStorage.getItem('jwtToken');
         if (!jwtToken) {
-            window.location.href = '/broadcast.html'; // Redirect if not logged in
+            window.location.href = '/broadcast.html';                     
             return;
         }
 
@@ -47,11 +46,25 @@
             }
         };
         const response = await fetch(`${API_URL}${endpoint}`, { ...defaultOptions, ...options });
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || 'An API error occurred.');
+
+        if (response.status === 401) {
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('myUsername');
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/broadcast.html';
+            throw new Error('Session expired.');
         }
-        return data;
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: response.statusText }));
+            throw new Error(errorData.message || 'An API error occurred.');
+        }
+
+        if (response.status === 204) {
+            return null;
+        }
+
+        return response.json();
     }
 
     async function fetchApiKey() {
@@ -109,7 +122,6 @@
             setTimeout(() => keyMessage.textContent = '', 2000);
         });
     }
-
 
     initialize();
 })();

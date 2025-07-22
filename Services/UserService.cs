@@ -3,6 +3,7 @@ using gstream.Models;
 using gstream.Models.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ namespace gstream.Services
             var user = new User
             {
                 Username = username,
-                Role = UserRole.Consumer   
+                Role = UserRole.Consumer
             };
 
             user.PasswordHash = _passwordHasher.HashPassword(user, password);
@@ -64,6 +65,11 @@ namespace gstream.Services
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<User?> GetUserByIdAsync(int userId)
+        {
+            return await _context.Users.FindAsync(userId);
         }
 
         public async Task<(bool Success, string Message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
@@ -136,7 +142,7 @@ namespace gstream.Services
                 var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
                 if (adminCount <= 1)
                 {
-                    return false;        
+                    return false;
                 }
             }
 

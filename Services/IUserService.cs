@@ -13,8 +13,7 @@ namespace gstream.Services
         Task<(bool Success, string Message)> RegisterUserAsync(string username, string password);
         Task<(bool Success, string Message)> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
         Task<string?> RegenerateApiKeyAsync(int userId);
-
-        // Admin Methods
+        Task<User?> GetUserByIdAsync(int userId);
         Task<IEnumerable<UserModel>> GetAllUsersAsync();
         Task<bool> UpdateUserAsync(int userId, UserModel model);
         Task<bool> DeleteUserAsync(int userId);
