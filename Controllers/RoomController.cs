@@ -9,7 +9,7 @@ namespace gstream.Controllers
 {
     [Route("api/rooms")]
     [ApiController]
-    [Authorize]
+    [Authorize]      
     public class RoomController : ControllerBase
     {
         private readonly IRoomService _roomService;
@@ -43,6 +43,7 @@ namespace gstream.Controllers
         }
 
         [HttpPost("{roomName}/chat")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + ",ApiKey")]
         public async Task<IActionResult> PostChatMessage(string roomName, [FromBody] ChatMessageRequest request)
         {
             var username = User.Identity?.Name;
@@ -60,8 +61,6 @@ namespace gstream.Controllers
 
             return Ok(savedMessage);
         }
-
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoom(int id)
         {

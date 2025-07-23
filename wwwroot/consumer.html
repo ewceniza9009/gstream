@@ -36,28 +36,102 @@
                 background-color: #374151;
             }
 
-        ::-webkit-scrollbar {
-            width: 10px;
+        .reaction-container {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            height: 500px;
+            overflow: hidden;
+            pointer-events: none;
         }
 
-        ::-webkit-scrollbar-track {
-            background: #1f2937;
-            border-radius: 6px;
+        .reaction-emoji {
+            position: absolute;
+            bottom: -50px;
+            left: var(--lx);
+            font-size: 2.5rem;
+            animation: floatUp 4s ease-out forwards;
+            opacity: 1;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background-color: #4b5563;
-            border-radius: 6px;
-            border: 2px solid #1f2937;
+        @keyframes floatUp {
+            to {
+                transform: translateY(-500px) translateX(var(--tx)) rotate(var(--rot));
+                opacity: 0;
+            }
         }
 
-            ::-webkit-scrollbar-thumb:hover {
-                background-color: #6b7280;
+        .reaction-buttons {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            background-color: rgba(0,0,0,0.4);
+            padding: 0.5rem;
+            border-radius: 9999px;
+        }
+
+            .reaction-buttons button {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                transition: transform 0.2s;
             }
 
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: #4b5563 #1f2937;
+                .reaction-buttons button:hover {
+                    transform: scale(1.2);
+                }
+
+        .poll-option-btn {
+            transition: background-color 0.2s;
+        }
+
+            .poll-option-btn:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+            }
+
+        .poll-progress-bar {
+            background-color: #4a5568;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .poll-display {
+            transition: all 0.3s ease-in-out;
+            max-height: 500px;
+        }
+
+            .poll-display.poll-minimized {
+                max-height: 48px;       
+                width: 250px;
+                overflow: hidden;
+            }
+
+                .poll-display.poll-minimized .poll-body {
+                    display: none;
+                }
+
+        .poll-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .poll-toggle-btn {
+            background: none;
+            border: none;
+            color: white;
+            padding-left: 1rem;
+        }
+
+        .poll-question-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -81,26 +155,34 @@
             <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-xl mb-6">
                 <p id="status" class="text-yellow-400"></p>
                 <div class="flex items-center gap-4">
-                    <div id="viewer-count" class="flex items-center gap-2 text-lg">
-                        <i class="fas fa-eye text-green-400"></i>
-                        <span id="viewer-count-number">0</span>
-                    </div>
+                    <div id="viewer-count" class="flex items-center gap-2 text-lg"><i class="fas fa-eye text-green-400"></i><span id="viewer-count-number">0</span></div>
                     <button id="leave-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition duration-300">Leave</button>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="md:col-span-2 bg-gray-800 p-4 rounded-lg shadow-xl">
+                <div class="md:col-span-2 bg-gray-800 p-4 rounded-lg shadow-xl relative">
                     <h3 class="text-xl font-semibold mb-2 text-center">Live Broadcast</h3>
                     <video id="remoteVideo" autoplay playsinline class="w-full rounded-md bg-black"></video>
                     <div id="quality-controls" class="flex justify-center space-x-2 mt-4"></div>
+
+                    <div class="reaction-container" id="video-reaction-container"></div>
+                    <div class="reaction-buttons">
+                        <button data-emoji="👍">👍</button>
+                        <button data-emoji="❤️">❤️</button>
+                        <button data-emoji="😂">😂</button>
+                        <button data-emoji="😮">😮</button>
+                        <button data-emoji="🎉">🎉</button>
+                    </div>
+
+                    <div id="poll-container" class="absolute top-4 left-4 w-full max-w-sm"></div>
                 </div>
 
                 <div id="chat-section" class="md:col-span-1 bg-gray-800 p-4 rounded-lg shadow-xl flex-col hidden h-full">
                     <h3 class="text-xl font-semibold mb-2 text-center">Live Chat</h3>
                     <div id="chat-messages" class="chat-box flex-grow mb-4 p-2 bg-gray-900 rounded"></div>
                     <div class="flex">
-                        <input type="text" id="chat-input" placeholder="Type a message..." class="flex-grow bg-gray-700 text-white p-2 rounded-l-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <input type="text" id="chat-input" placeholder="Type a message..." class="flex-grow bg-gray-700 text-white p-2 rounded-l-md border border-gray-600">
                         <button id="chat-send-button" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-r-md">Send</button>
                     </div>
                 </div>

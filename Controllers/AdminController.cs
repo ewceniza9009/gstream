@@ -2,6 +2,7 @@
 using gstream.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,7 +19,6 @@ namespace gstream.Controllers
         private readonly ILogger<AdminController> _logger;
         private readonly IRoomService _roomService;
 
-
         public AdminController(IUserService userService, IBroadcastStateService stateService, LiveKitService liveKitService, ILogger<AdminController> logger, IRoomService roomService)
         {
             _userService = userService;
@@ -31,22 +31,39 @@ namespace gstream.Controllers
         [HttpGet("stats")]
         public async Task<IActionResult> GetSystemStats()
         {
-            var activeStreams = await _stateService.GetAllActiveStreamsAsync();
-            var totalViewers = activeStreams.Sum(s => s.Value);
+            var activeStreamsFromRedis = await _stateService.GetAllActiveStreamsAsync();
+            var accurateStreamStats = new Dictionary<string, long>();
 
-            var popularRooms = activeStreams
+            foreach (var stream in activeStreamsFromRedis)
+            {
+                var roomName = stream.Key;
+                var broadcastType = await _stateService.GetBroadcastTypeAsync(roomName);
+
+                if (broadcastType == "sfu")
+                {
+                    var participantCount = await _liveKitService.GetParticipantCountAsync(roomName);
+                    accurateStreamStats[roomName] = participantCount > 0 ? participantCount - 1 : 0;
+                }
+                else      
+                {
+                    accurateStreamStats[roomName] = stream.Value;
+                }
+            }
+
+            var totalViewers = accurateStreamStats.Sum(s => s.Value);
+
+            var popularRooms = accurateStreamStats
                 .OrderByDescending(s => s.Value)
                 .Take(5)
                 .Select(s => new { RoomName = s.Key, Viewers = s.Value });
 
             return Ok(new
             {
-                TotalActiveStreams = activeStreams.Count,
+                TotalActiveStreams = accurateStreamStats.Count,
                 TotalViewers = totalViewers,
                 PopularRooms = popularRooms
             });
         }
-
 
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers()

@@ -1,7 +1,8 @@
 ﻿using Livekit.Server.Sdk.Dotnet;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Threading.Tasks;  
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace gstream.Services
 {
@@ -30,7 +31,16 @@ namespace gstream.Services
             _apiSecret = configuration.GetValue<string>("LiveKit:ApiSecret")
                 ?? throw new InvalidOperationException("LiveKit:ApiSecret is not configured in appsettings.json.");
 
-            _liveKitApiUrl = _liveKitHost.Replace("wss://", "http://").Replace("ws://", "http://");
+            var privateUrl = configuration.GetValue<string>("LiveKit:PrivateUrl");
+            if (!string.IsNullOrEmpty(privateUrl))
+            {
+                _liveKitApiUrl = privateUrl;
+            }
+            else
+            {
+                Console.WriteLine("[WARNING] LiveKit:PrivateUrl is not configured. The application may not be able to fetch stream stats correctly. Please add it to your appsettings.json.");
+                _liveKitApiUrl = _liveKitHost.Replace("wss://", "http://").Replace("ws://", "http://");
+            }
             _roomServiceClient = new RoomServiceClient(_liveKitApiUrl, _apiKey, _apiSecret);
         }
 
@@ -50,6 +60,20 @@ namespace gstream.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Could not delete LiveKit room '{roomName}'. It may have already been deleted. Error: {ex.Message}");
+            }
+        }
+
+        public async Task<int> GetParticipantCountAsync(string roomName)
+        {
+            try
+            {
+                var response = await _roomServiceClient.ListParticipants(new ListParticipantsRequest() { Room = roomName });
+                return response.Participants.Count;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to get participant count for room '{roomName}': {ex.Message}");
+                return 0;
             }
         }
 
