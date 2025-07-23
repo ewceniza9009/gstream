@@ -534,6 +534,10 @@
                 livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'moderation' });
                 const msgElement = document.getElementById(`chat-msg-${messageId}`);
                 if (msgElement) msgElement.remove();
+                const response = fetch(`${API_URL}/api/rooms/chat/${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+                });
             } else if (broadcastType === 'mesh' && signalRConnection) {
                 signalRConnection.invoke('DeleteMessage', currentRoomId, messageId).catch(err => console.error(err));
             }

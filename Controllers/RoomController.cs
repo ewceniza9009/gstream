@@ -61,6 +61,25 @@ namespace gstream.Controllers
 
             return Ok(savedMessage);
         }
+
+        [HttpDelete("chat/{messageId}")]
+        public async Task<IActionResult> DeleteChatMessage(int messageId)
+        {
+            var username = User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                return Unauthorized();
+            }
+
+            var success = await _roomService.DeleteMessageAsync(messageId, username);
+            if (!success)
+            {
+                return Forbid();
+            }
+
+            return NoContent();  
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoom(int id)
         {
