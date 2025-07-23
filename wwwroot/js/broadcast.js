@@ -229,6 +229,7 @@
                 updateNav();
             }
         }
+
         async function handleLogout() {
             await handleLeave();
             localStorage.removeItem('jwtToken');
@@ -254,6 +255,7 @@
             document.getElementById('selected-room-name').textContent = roomName;
             document.getElementById('room-id').value = roomName;
         }
+
         async function fetchAndRenderRooms() {
             roomList.innerHTML = '<p class="text-gray-400 col-span-full text-center">Loading rooms...</p>';
             try {
@@ -319,6 +321,7 @@
                 handleLeave();
             }
         }
+
         async function startMeshBroadcast() {
             if (!await initializeSignalR()) throw new Error('Failed to connect for mesh broadcast.');
             await signalRConnection.invoke('StartBroadcast', currentRoomId, 'mesh');
@@ -326,6 +329,7 @@
             startScreenShareBtn.classList.add('hidden');
             createPollBtn.classList.add('hidden');
         }
+
         async function startSfuBroadcast() {
             statusDiv.textContent = 'Initializing SFU broadcast...';
             try {
@@ -385,6 +389,7 @@
                 throw error;
             }
         }
+
         async function handleLeave() {
             if (livekitRoom || signalRConnection) {
                 await handleScreenShare(false);
@@ -420,6 +425,7 @@
             showRoomSelection();
             await fetchAndRenderRooms();
         }
+
         async function handleScreenShare(enabled) {
             if (enabled) {
                 try {
@@ -465,6 +471,7 @@
                 }
             }
         }
+
         async function initializeSignalR() {
             signalRConnection = new signalR.HubConnectionBuilder().withUrl(`${API_URL}/broadcasthub?access_token=${jwtToken}`).withAutomaticReconnect().build();
             signalRConnection.on('NewViewer', async (viewerId) => {
@@ -600,7 +607,6 @@
                 });
                 displayChatMessage(payload.id, payload.username, payload.content, true);
             }
-        }
 
         function displayChatMessage(id, user, message, isSelf) {
             const msgContainer = document.createElement('div');
@@ -612,7 +618,7 @@
             const header = document.createElement('div');
             header.className = 'flex items-center space-x-2' + (isSelf ? ' justify-end flex-row-reverse' : '');
             const usernameSpan = document.createElement('span');
-            usernameSpan.className = 'text-sm font-semibold text-white';
+            usernameSpan.className = 'text-sm font-semibold text-white ml-[5px]';
             usernameSpan.textContent = isSelf ? "You" : user;
             const deleteBtn = document.createElement('button');
             deleteBtn.innerHTML = `<i class="fas fa-times-circle text-gray-500 hover:text-red-400"></i>`;

@@ -36,6 +36,8 @@ namespace gstream.Hubs
         {
             if (string.IsNullOrEmpty(roomId) || string.IsNullOrEmpty(message)) return;
 
+            if (Context == null || Context?.User == null) return;
+
             var username = Context.User.Identity?.Name ?? $"User-{Context.ConnectionId.Substring(0, 5)}";
 
             var savedMessage = await _roomService.SaveMessageAsync(roomId, username, message);
@@ -48,6 +50,8 @@ namespace gstream.Hubs
 
         public async Task DeleteMessage(string roomId, int messageId)
         {
+            if (Context == null || Context?.User == null) return;
+
             var username = Context.User.Identity?.Name;
             if (string.IsNullOrEmpty(username)) return;
 
@@ -57,7 +61,6 @@ namespace gstream.Hubs
                 await Clients.Group(roomId).SendAsync("MessageDeleted", messageId);
             }
         }
-
 
         public async Task ViewBroadcast(string roomId)
         {
@@ -75,7 +78,6 @@ namespace gstream.Hubs
             await Clients.Group(roomId).SendAsync("UpdateViewerCount", viewerCount);
         }
 
-
         public async Task SendOfferToViewer(string viewerId, object offer)
         {
             await Clients.Client(viewerId).SendAsync("ReceiveOfferFromBroadcaster", offer, Context.ConnectionId);
@@ -90,7 +92,6 @@ namespace gstream.Hubs
         {
             await Clients.Client(targetConnectionId).SendAsync("ReceiveIceCandidate", candidate);
         }
-
 
         public override async Task OnDisconnectedAsync(System.Exception? exception)
         {

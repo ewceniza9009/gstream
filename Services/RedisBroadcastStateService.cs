@@ -79,13 +79,16 @@ namespace gstream.Services
             await context.SaveChangesAsync();
 
             var redisValue = broadcastType == "mesh" && connectionId != null ? connectionId : broadcasterIdentity;
+
             var batch = _db.CreateBatch();
-            batch.StringSetAsync(GetBroadcastKey(roomId), redisValue, KeyExpiry);
-            batch.StringSetAsync(GetBroadcastTypeKey(roomId), broadcastType, KeyExpiry);
-            batch.StringSetAsync(GetViewerCountKey(roomId), 0, KeyExpiry);
+
+            _ = batch.StringSetAsync(GetBroadcastKey(roomId), redisValue, KeyExpiry);
+            _ = batch.StringSetAsync(GetBroadcastTypeKey(roomId), broadcastType, KeyExpiry);
+            _ = batch.StringSetAsync(GetViewerCountKey(roomId), 0, KeyExpiry);
+
             if (connectionId != null)
             {
-                batch.StringSetAsync(GetConnectionKey(connectionId), $"broadcaster:{roomId}", KeyExpiry);
+                _ = batch.StringSetAsync(GetConnectionKey(connectionId), $"broadcaster:{roomId}", KeyExpiry);
             }
             batch.Execute();
         }

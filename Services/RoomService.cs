@@ -48,7 +48,7 @@ namespace gstream.Services
         {
             var message = await _context.ChatMessages
                 .Include(m => m.Room)
-                .ThenInclude(r => r.Broadcaster)
+                .ThenInclude(r => r!.Broadcaster)
                 .Include(m => m.User)
                 .FirstOrDefaultAsync(m => m.Id == messageId);
 
@@ -57,14 +57,13 @@ namespace gstream.Services
             var requestingUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == requestingUsername);
             if (requestingUser == null) return false;
 
-            // Allow deletion if the user is an Admin, the broadcaster of the room, or the message author.
             bool isBroadcaster = message.Room?.Broadcaster?.Username == requestingUsername;
             bool isAdmin = requestingUser.Role == UserRole.Admin;
-            bool isAuthor = message.User.Username == requestingUsername;
+            bool isAuthor = message.User!.Username == requestingUsername;
 
             if (isBroadcaster || isAdmin || isAuthor)
             {
-                _context.ChatMessages.Remove(message);
+                _context.ChatMessages.Remove(message!);
                 await _context.SaveChangesAsync();
                 return true;
             }
@@ -76,14 +75,14 @@ namespace gstream.Services
         {
             return await _context.ChatMessages
                 .AsNoTracking()
-                .Where(m => m.Room.Name == roomName)
+                .Where(m => m.Room!.Name == roomName)
                 .OrderByDescending(m => m.Timestamp)
                 .Take(50)
                 .OrderBy(m => m.Timestamp)
                 .Select(m => new ChatMessageDto
                 {
                     Id = m.Id,
-                    Username = m.User.Username,
+                    Username = m.User!.Username,
                     Content = m.Content,
                     Timestamp = m.Timestamp
                 })

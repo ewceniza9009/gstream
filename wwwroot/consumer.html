@@ -14,10 +14,10 @@
         }
 
         .chat-box {
-            max-height: calc(100vh - 300px);
+            height: calc(85vh - 240px);
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse;
+            flex-direction: column;
         }
 
         .chat-message.self {
@@ -35,6 +35,30 @@
             .chat-message.other .chat-bubble {
                 background-color: #374151;
             }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            border-radius: 6px;
+            border: 2px solid #1f2937;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background-color: #6b7280;
+            }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #4b5563 #1f2937;
+        }
 
         .reaction-container {
             position: absolute;

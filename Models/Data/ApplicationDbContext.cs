@@ -45,7 +45,7 @@ namespace gstream.Data
                 {
                     Id = 1,
                     Username = "admin",
-                    PasswordHash = hasher.HashPassword(null, "adminpassword"),
+                    PasswordHash = hasher.HashPassword(null!, "adminpassword"),
                     UserApiKey = "adminKey_DO_NOT_USE_IN_PROD",
                     Role = UserRole.Admin,
                     IsBlocked = false
@@ -54,7 +54,7 @@ namespace gstream.Data
                 {
                     Id = 2,
                     Username = "broadcaster1",
-                    PasswordHash = hasher.HashPassword(null, "password"),
+                    PasswordHash = hasher.HashPassword(null!, "password"),
                     UserApiKey = "broadcaster1ApiKey",
                     Role = UserRole.Broadcaster,
                     IsBlocked = false
@@ -63,7 +63,7 @@ namespace gstream.Data
                 {
                     Id = 3,
                     Username = "consumer1",
-                    PasswordHash = hasher.HashPassword(null, "password"),
+                    PasswordHash = hasher.HashPassword(null!, "password"),
                     UserApiKey = "consumer1ApiKey",
                     Role = UserRole.Consumer,
                     IsBlocked = false

@@ -57,7 +57,7 @@ namespace gstream.Hubs
             await Clients.GroupExcept(roomId, Context.ConnectionId).SendAsync("ReceiveIceCandidate", candidate);
         }
 
-        public override async Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
             foreach (var room in Rooms)
             {
