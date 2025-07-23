@@ -56,6 +56,35 @@
             </div>
         </div>
 
+        <div id="system-stats-section" class="mb-8">
+            <h3 class="text-2xl font-semibold mb-4">System Statistics</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-gray-800 p-6 rounded-lg flex items-center">
+                    <i class="fas fa-video fa-3x text-cyan-400 mr-4"></i>
+                    <div>
+                        <div class="text-4xl font-bold" id="active-streams-stat">0</div>
+                        <div class="text-gray-400">Active Streams</div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg flex items-center">
+                    <i class="fas fa-users fa-3x text-green-400 mr-4"></i>
+                    <div>
+                        <div class="text-4xl font-bold" id="total-viewers-stat">0</div>
+                        <div class="text-gray-400">Total Viewers</div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg col-span-1 lg:col-span-2">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-fire-alt fa-2x text-red-400 mr-4"></i>
+                        <h4 class="text-xl font-semibold">Most Popular Rooms</h4>
+                    </div>
+                    <ul id="popular-rooms-list" class="text-gray-300 space-y-1">
+                        <li class="text-gray-500">No active streams.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
             <h3 class="text-xl font-semibold text-red-400 mb-4">System Actions</h3>
             <div class="flex gap-4">

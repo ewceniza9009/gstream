@@ -18,6 +18,78 @@ namespace gstream.Services
             _context = context;
         }
 
+        public async Task<ChatMessageDto?> SaveMessageAsync(string roomName, string username, string content)
+        {
+            var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Name == roomName);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+
+            if (room == null || user == null) return null;
+
+            var chatMessage = new ChatMessage
+            {
+                Content = content,
+                RoomId = room.Id,
+                UserId = user.Id,
+                Timestamp = DateTime.UtcNow
+            };
+            _context.ChatMessages.Add(chatMessage);
+            await _context.SaveChangesAsync();
+
+            return new ChatMessageDto
+            {
+                Id = chatMessage.Id,
+                Username = user.Username,
+                Content = chatMessage.Content,
+                Timestamp = chatMessage.Timestamp
+            };
+        }
+
+        public async Task<bool> DeleteMessageAsync(int messageId, string requestingUsername)
+        {
+            var message = await _context.ChatMessages
+                .Include(m => m.Room)
+                .ThenInclude(r => r.Broadcaster)
+                .Include(m => m.User)
+                .FirstOrDefaultAsync(m => m.Id == messageId);
+
+            if (message == null) return false;
+
+            var requestingUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == requestingUsername);
+            if (requestingUser == null) return false;
+
+            // Allow deletion if the user is an Admin, the broadcaster of the room, or the message author.
+            bool isBroadcaster = message.Room?.Broadcaster?.Username == requestingUsername;
+            bool isAdmin = requestingUser.Role == UserRole.Admin;
+            bool isAuthor = message.User.Username == requestingUsername;
+
+            if (isBroadcaster || isAdmin || isAuthor)
+            {
+                _context.ChatMessages.Remove(message);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task<IEnumerable<ChatMessageDto>> GetChatHistoryAsync(string roomName)
+        {
+            return await _context.ChatMessages
+                .AsNoTracking()
+                .Where(m => m.Room.Name == roomName)
+                .OrderByDescending(m => m.Timestamp)
+                .Take(50)
+                .OrderBy(m => m.Timestamp)
+                .Select(m => new ChatMessageDto
+                {
+                    Id = m.Id,
+                    Username = m.User.Username,
+                    Content = m.Content,
+                    Timestamp = m.Timestamp
+                })
+                .ToListAsync();
+        }
+
         public async Task<RoomDto?> CreateRoomAsync(string name)
         {
             if (await _context.Rooms.AnyAsync(r => r.Name == name))
@@ -80,7 +152,6 @@ namespace gstream.Services
 
             if (await _context.Rooms.AnyAsync(r => r.Name == name && r.Id != id))
             {
-                // This indicates a name conflict. You might want to return a specific error.
                 return null;
             }
 
@@ -88,24 +159,6 @@ namespace gstream.Services
             await _context.SaveChangesAsync();
 
             return MapToDto(room);
-        }
-
-        // Implementation for the new method
-        public async Task<IEnumerable<ChatMessageDto>> GetChatHistoryAsync(string roomName)
-        {
-            return await _context.ChatMessages
-                .AsNoTracking()
-                .Where(m => m.Room.Name == roomName)
-                .OrderByDescending(m => m.Timestamp)
-                .Take(50) // Get the last 50 messages
-                .OrderBy(m => m.Timestamp) // Re-order them chronologically
-                .Select(m => new ChatMessageDto
-                {
-                    Username = m.User.Username,
-                    Content = m.Content,
-                    Timestamp = m.Timestamp
-                })
-                .ToListAsync();
         }
 
         private RoomDto MapToDto(Room room)

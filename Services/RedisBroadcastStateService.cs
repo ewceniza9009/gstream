@@ -15,6 +15,7 @@ namespace gstream.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private const string BroadcastKeyPrefix = "gstream:broadcast:";
         private const string ConnectionKeyPrefix = "gstream:connection:";
+        private const string ViewerCountKeyPrefix = "gstream:viewers:";
         private const string BroadcastTypeKeySuffix = ":type";
         private static readonly TimeSpan KeyExpiry = TimeSpan.FromDays(1);
 
@@ -28,6 +29,7 @@ namespace gstream.Services
         private string GetBroadcastKey(string roomId) => $"{BroadcastKeyPrefix}{roomId}";
         private string GetBroadcastTypeKey(string roomId) => $"{GetBroadcastKey(roomId)}{BroadcastTypeKeySuffix}";
         private string GetConnectionKey(string connectionId) => $"{ConnectionKeyPrefix}{connectionId}";
+        private string GetViewerCountKey(string roomId) => $"{ViewerCountKeyPrefix}{roomId}";
 
         public async Task<bool> IsBroadcastActiveAsync(string roomId)
         {
@@ -57,8 +59,8 @@ namespace gstream.Services
             if (room != null)
             {
                 room.Status = RoomStatus.Broadcasting;
-                room.BroadcasterId = user.Id;       
-                room.EndedAt = null;      
+                room.BroadcasterId = user.Id;
+                room.EndedAt = null;
             }
             else
             {
@@ -78,6 +80,7 @@ namespace gstream.Services
             var batch = _db.CreateBatch();
             batch.StringSetAsync(GetBroadcastKey(roomId), redisValue, KeyExpiry);
             batch.StringSetAsync(GetBroadcastTypeKey(roomId), broadcastType, KeyExpiry);
+            batch.StringSetAsync(GetViewerCountKey(roomId), 0, KeyExpiry);    
             if (connectionId != null)
             {
                 batch.StringSetAsync(GetConnectionKey(connectionId), $"broadcaster:{roomId}", KeyExpiry);
@@ -102,34 +105,13 @@ namespace gstream.Services
                 }
             }
 
+            await ClearViewerCountAsync(roomId);
             var server = _redis.GetServer(_redis.GetEndPoints().First());
             var pattern = $"{BroadcastKeyPrefix}{roomId}*";
             var keysToDelete = server.Keys(pattern: pattern).ToArray();
             if (keysToDelete.Any())
             {
                 await _db.KeyDeleteAsync(keysToDelete);
-            }
-        }
-
-        public async Task SaveChatMessageAsync(string roomId, string username, string message)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Name == roomId);
-            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
-            if (room != null && user != null)
-            {
-                var chatMessage = new ChatMessage
-                {
-                    Content = message,
-                    RoomId = room.Id,
-                    UserId = user.Id,
-                    Timestamp = DateTime.UtcNow
-                };
-                context.ChatMessages.Add(chatMessage);
-                await context.SaveChangesAsync();
             }
         }
 
@@ -147,7 +129,11 @@ namespace gstream.Services
             await context.SaveChangesAsync();
 
             var server = _redis.GetServer(_redis.GetEndPoints().First());
-            var keys = server.Keys(pattern: $"{BroadcastKeyPrefix}*").Concat(server.Keys(pattern: $"{ConnectionKeyPrefix}*")).ToArray();
+            var keys = server.Keys(pattern: $"{BroadcastKeyPrefix}*")
+                .Concat(server.Keys(pattern: $"{ConnectionKeyPrefix}*"))
+                .Concat(server.Keys(pattern: $"{ViewerCountKeyPrefix}*"))
+                .ToArray();
+
             if (keys.Any())
             {
                 await _db.KeyDeleteAsync(keys);
@@ -171,6 +157,44 @@ namespace gstream.Services
             if (string.IsNullOrEmpty(value)) return (null, false);
             var parts = value.Split(':', 2);
             return parts.Length != 2 ? (null, false) : (parts[1], parts[0] == "broadcaster");
+        }
+
+        public async Task<long> GetViewerCountAsync(string roomId)
+        {
+            return (long)await _db.StringGetAsync(GetViewerCountKey(roomId));
+        }
+
+        public Task<long> IncrementViewerCountAsync(string roomId)
+        {
+            return _db.StringIncrementAsync(GetViewerCountKey(roomId));
+        }
+
+        public Task<long> DecrementViewerCountAsync(string roomId)
+        {
+            return _db.StringDecrementAsync(GetViewerCountKey(roomId));
+        }
+
+        public Task ClearViewerCountAsync(string roomId)
+        {
+            return _db.KeyDeleteAsync(GetViewerCountKey(roomId));
+        }
+
+        public async Task<Dictionary<string, long>> GetAllActiveStreamsAsync()
+        {
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+            var keys = server.Keys(pattern: $"{BroadcastKeyPrefix}*").ToArray();
+            var streams = new Dictionary<string, long>();
+
+            foreach (var key in keys)
+            {
+                if (!key.ToString().EndsWith(BroadcastTypeKeySuffix))
+                {
+                    var roomId = key.ToString().Replace(BroadcastKeyPrefix, "");
+                    var viewerCount = await GetViewerCountAsync(roomId);
+                    streams[roomId] = viewerCount;
+                }
+            }
+            return streams;
         }
     }
 }

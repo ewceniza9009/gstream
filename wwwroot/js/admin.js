@@ -1,14 +1,14 @@
 ﻿(async function () {
     let API_URL;
     let jwtToken;
-    let allRooms = [];                                
-    let allUsers = [];                                
+    let allRooms = [];
+    let allUsers = [];
 
     const logoutButton = document.getElementById('logout-button');
     const flushBroadcastsBtn = document.getElementById('flush-broadcasts-button');
     const roomListContainer = document.getElementById('room-list-container');
     const createRoomBtn = document.getElementById('create-room-btn');
-    const roomSearchInput = document.getElementById('room-search-input');                 
+    const roomSearchInput = document.getElementById('room-search-input');
     const roomModal = document.getElementById('room-modal');
     const roomModalTitle = document.getElementById('room-modal-title');
     const roomModalForm = document.getElementById('room-modal-form');
@@ -26,6 +26,10 @@
     const userBlockedModal = document.getElementById('user-blocked-modal');
     const closeUserModalBtn = document.getElementById('close-user-modal-btn');
 
+    const activeStreamsStat = document.getElementById('active-streams-stat');
+    const totalViewersStat = document.getElementById('total-viewers-stat');
+    const popularRoomsList = document.getElementById('popular-rooms-list');
+
 
     async function initialize() {
         try {
@@ -40,7 +44,7 @@
 
         jwtToken = localStorage.getItem('jwtToken');
         if (!jwtToken) {
-            window.location.href = '/broadcast.html';                     
+            window.location.href = '/broadcast.html';
             return;
         }
 
@@ -49,7 +53,7 @@
 
         if (userRole !== 'Admin') {
             alert('Access Denied: This page is for administrators only.');
-            window.location.href = '/broadcast.html';         
+            window.location.href = '/broadcast.html';
             return;
         }
 
@@ -60,14 +64,17 @@
         roomModalForm.addEventListener('submit', handleSaveRoom);
         closeUserModalBtn.addEventListener('click', closeUserModal);
         userModalForm.addEventListener('submit', handleSaveUser);
-        roomSearchInput.addEventListener('input', handleRoomSearch);                         
-        userSearchInput.addEventListener('input', handleUserSearch);                         
+        roomSearchInput.addEventListener('input', handleRoomSearch);
+        userSearchInput.addEventListener('input', handleUserSearch);
 
 
         await Promise.all([
             fetchAndRenderRooms(),
-            fetchAndRenderUsers()
+            fetchAndRenderUsers(),
+            fetchAndRenderStats()
         ]);
+
+        setInterval(fetchAndRenderStats, 5000);                     
     }
 
     function handleLogout() {
@@ -75,6 +82,32 @@
         localStorage.removeItem('myUsername');
         window.location.href = '/index.html';
     }
+
+    async function fetchAndRenderStats() {
+        try {
+            const stats = await apiFetch('/api/admin/stats');
+            activeStreamsStat.textContent = stats.totalActiveStreams;
+            totalViewersStat.textContent = stats.totalViewers;
+
+            popularRoomsList.innerHTML = '';
+            if (stats.popularRooms.length > 0) {
+                stats.popularRooms.forEach(room => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center';
+                    li.innerHTML = `
+                        <span><i class="fas fa-video mr-2"></i>${room.roomName}</span>
+                        <span class="font-bold text-green-400">${room.viewers} viewers</span>
+                    `;
+                    popularRoomsList.appendChild(li);
+                });
+            } else {
+                popularRoomsList.innerHTML = '<li class="text-gray-500">No active streams.</li>';
+            }
+        } catch (error) {
+            console.error("Could not fetch stats:", error.message);
+        }
+    }
+
 
     async function apiFetch(endpoint, options = {}) {
         const defaultOptions = {
@@ -95,8 +128,8 @@
         roomListContainer.innerHTML = `<p class="text-gray-400">Loading rooms...</p>`;
         try {
             const rooms = await apiFetch('/api/rooms');
-            allRooms = rooms;                 
-            renderRoomList(allRooms);                     
+            allRooms = rooms;
+            renderRoomList(allRooms);
         } catch (error) {
             roomListContainer.innerHTML = `<p class="text-red-400">Could not load rooms: ${error.message}</p>`;
         }
@@ -180,8 +213,8 @@
         userListContainer.innerHTML = `<p class="text-gray-400">Loading users...</p>`;
         try {
             const users = await apiFetch('/api/admin/users');
-            allUsers = users;                 
-            renderUserList(allUsers);                     
+            allUsers = users;
+            renderUserList(allUsers);
         } catch (error) {
             userListContainer.innerHTML = `<p class="text-red-400">Could not load users: ${error.message}</p>`;
         }

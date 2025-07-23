@@ -1,5 +1,6 @@
 ﻿using gstream.Models;
 using gstream.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -41,6 +42,26 @@ namespace gstream.Controllers
             return CreatedAtAction(nameof(GetRoom), new { id = newRoom.Id }, newRoom);
         }
 
+        [HttpPost("{roomName}/chat")]
+        public async Task<IActionResult> PostChatMessage(string roomName, [FromBody] ChatMessageRequest request)
+        {
+            var username = User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                return Unauthorized();
+            }
+
+            var savedMessage = await _roomService.SaveMessageAsync(roomName, username, request.Content);
+
+            if (savedMessage == null)
+            {
+                return BadRequest(new { message = "Could not save message. The room or user may not exist." });
+            }
+
+            return Ok(savedMessage);
+        }
+
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetRoom(int id)
         {
@@ -50,6 +71,7 @@ namespace gstream.Controllers
         }
 
         [HttpGet("{roomId}/chat")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + ",ApiKey")]
         public async Task<IActionResult> GetChatHistory(string roomId)
         {
             var messages = await _roomService.GetChatHistoryAsync(roomId);

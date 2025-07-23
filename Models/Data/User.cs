@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace gstream.Models.Data
 {
@@ -30,5 +31,16 @@ namespace gstream.Models.Data
 
         public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
         public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
+
+        public string GetInitials()
+        {
+            if (string.IsNullOrWhiteSpace(Username)) return "?";
+            var parts = Username.Split(new[] { ' ', '.', '_' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 1)
+            {
+                return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpper();
+            }
+            return Username.Length > 1 ? Username.Substring(0, 2).ToUpper() : Username.ToUpper();
+        }
     }
 }

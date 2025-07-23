@@ -12,50 +12,43 @@
         return;
     }
 
-    // --- DOM Elements ---
     const loginSection = document.getElementById('login-section');
     const streamingSection = document.getElementById('streaming-section');
     const broadcastDashboard = document.getElementById('broadcast-dashboard');
     const roomSelectionSection = document.getElementById('room-selection-section');
     const configureSection = document.getElementById('configure-section');
-
     const loginButton = document.getElementById('login-button');
     const registerButton = document.getElementById('register-button');
     const logoutButton = document.getElementById('logout-button');
     const adminLink = document.getElementById('admin-link');
     const navLinks = document.getElementById('nav-links');
-
     const startBroadcastBtn = document.getElementById('start-broadcast-button');
     const leaveBtn = document.getElementById('leave-button');
     const recordBtn = document.getElementById('record-button');
-
     const localVideo = document.getElementById('localVideo');
     const localVideoContainer = document.getElementById('local-video-container');
     const statusDiv = document.getElementById('status');
     const selectedRoomNameSpan = document.getElementById('selected-room-name');
-    const roomIdInput = document.getElementById('room-id'); // This is a hidden input now
-
+    const roomIdInput = document.getElementById('room-id');
     const roomSearchInput = document.getElementById('room-search-input');
     const roomList = document.getElementById('room-list');
     const backToRoomsBtn = document.getElementById('back-to-rooms-btn');
-
     const cameraSourceRadios = document.querySelectorAll('input[name="cameraSource"]');
     const ipCameraSection = document.getElementById('ip-camera-section');
     const ipCameraUrlInput = document.getElementById('ip-camera-url');
-
     const chatSection = document.getElementById('chat-section');
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatSendButton = document.getElementById('chat-send-button');
-
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const loginHeader = document.getElementById('login-header');
     const dashboardHeader = document.getElementById('dashboard-header');
     const showRegisterLink = document.getElementById('show-register-link');
     const showLoginLink = document.getElementById('show-login-link');
+    const viewerCountNumber = document.getElementById('viewer-count-number');
 
-    // --- State Variables ---
+
     let jwtToken;
     let signalRConnection;
     let localStream;
@@ -66,6 +59,7 @@
     let broadcastType;
     let myUsername;
     let allRooms = [];
+    let isAdmin = false;
 
     const iceServers = {
         iceServers: [
@@ -74,10 +68,8 @@
         ]
     };
 
-    // --- Initialization ---
     initializeApplicationState();
 
-    // --- Event Listeners ---
     loginButton.addEventListener('click', handleLogin);
     registerButton.addEventListener('click', handleRegister);
     logoutButton.addEventListener('click', handleLogout);
@@ -131,7 +123,6 @@
         loginForm.classList.remove('hidden');
     });
 
-    // --- Helper Functions ---
     function parseJwt(token) {
         try {
             return JSON.parse(atob(token.split('.')[1]));
@@ -144,13 +135,14 @@
         if (!jwtToken) return;
         const decodedToken = parseJwt(jwtToken);
         if (decodedToken && decodedToken.role === 'Admin') {
+            isAdmin = true;
             adminLink.classList.remove('hidden');
         } else {
+            isAdmin = false;
             adminLink.classList.add('hidden');
         }
     }
 
-    // --- Authentication & State ---
     async function handleLogin() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -173,14 +165,12 @@
 
             document.getElementById('password').value = '';
 
-            // --- START: Corrected Role Logic ---
             loginHeader.classList.add('hidden');
             loginSection.classList.add('hidden');
             dashboardHeader.classList.remove('hidden');
 
             const decodedToken = parseJwt(jwtToken);
             if (decodedToken && decodedToken.role === 'Consumer') {
-                // For consumers, just show the header but not the broadcast rooms
                 broadcastDashboard.innerHTML = `
                 <div class="text-center p-8 bg-gray-800 rounded-lg">
                     <h3 class="text-2xl font-semibold text-yellow-400">Access Denied</h3>
@@ -189,13 +179,10 @@
                 </div>`;
                 broadcastDashboard.classList.remove('hidden');
             } else {
-                // For Admins/Broadcasters, show the rooms
                 broadcastDashboard.classList.remove('hidden');
                 await fetchAndRenderRooms();
             }
             updateNav();
-            // --- END: Corrected Role Logic ---
-
         } catch (error) {
             loginError.textContent = `Login failed: ${error.message}`;
         }
@@ -209,7 +196,6 @@
             loginSection.classList.add('hidden');
             dashboardHeader.classList.remove('hidden');
 
-            // --- START: Corrected Role Logic for Page Load ---
             const decodedToken = parseJwt(jwtToken);
             if (decodedToken && decodedToken.role === 'Consumer') {
                 broadcastDashboard.innerHTML = `
@@ -224,7 +210,6 @@
                 fetchAndRenderRooms();
             }
             updateNav();
-            // --- END: Corrected Role Logic for Page Load ---
         }
     }
 
@@ -235,34 +220,25 @@
         jwtToken = null;
         myUsername = null;
 
-        // Hide all dashboard/header elements
         dashboardHeader.classList.add('hidden');
         broadcastDashboard.classList.add('hidden');
         streamingSection.classList.add('hidden');
 
-        // Show all login elements
         loginHeader.classList.remove('hidden');
         loginSection.classList.remove('hidden');
-
-        // REMOVE THIS LINE
-        // showRoomSelection(); 
     }
 
-    // --- Broadcaster UI Flow ---
     function showRoomSelection() {
         configureSection.classList.add('hidden');
         roomSelectionSection.classList.remove('hidden');
         streamingSection.classList.add('hidden');
-
-        // REMOVE THIS LINE
-        // broadcastDashboard.classList.remove('hidden');
     }
 
     function showConfigureSection(roomName) {
         roomSelectionSection.classList.add('hidden');
         configureSection.classList.remove('hidden');
         selectedRoomNameSpan.textContent = roomName;
-        roomIdInput.value = roomName; // The hidden input
+        roomIdInput.value = roomName;
     }
 
     async function fetchAndRenderRooms() {
@@ -319,7 +295,6 @@
         renderRoomList(filteredRooms);
     }
 
-    // --- Broadcasting ---
     async function startBroadcast() {
         userRole = 'broadcaster';
         currentRoomId = roomIdInput.value;
@@ -336,7 +311,7 @@
             } else {
                 await startMeshBroadcast();
             }
-            await fetchAndRenderRooms(); // Refresh room list to show new status
+            await fetchAndRenderRooms();
         } catch (error) {
             alert(error.message || 'Could not start broadcast.');
             handleLeave();
@@ -358,21 +333,38 @@
 
             myUsername = username;
             livekitRoom = new LivekitClient.Room();
+
+            livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+                console.log('--- BROADCASTER: LiveKit Data Received ---', { topic, from: participant.identity });
+                try {
+                    const messageDto = JSON.parse(new TextDecoder().decode(payload));
+                    if (topic === 'chat') {
+                        displayChatMessage(messageDto.id, messageDto.username, messageDto.content, messageDto.username === myUsername);
+                    } else if (topic === 'moderation' && messageDto.action === 'delete') {
+                        const msgElement = document.getElementById(`chat-msg-${messageDto.id}`);
+                        if (msgElement) msgElement.remove();
+                    }
+                } catch (e) {
+                    console.error("Failed to parse incoming data payload:", e);
+                }
+            });
+
             await livekitRoom.connect(liveKitUrl, token);
+            console.log('--- BROADCASTER: Connected to LiveKit Room ---');
 
             statusDiv.textContent = `Broadcasting to room: ${currentRoomId} (SFU)`;
 
             if (localStream.getVideoTracks().length > 0) await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0]);
             if (localStream.getAudioTracks().length > 0) await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
 
-            livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload) => {
-                const message = JSON.parse(new TextDecoder().decode(payload));
-                displayChatMessage(message.username, message.text, false);
+            livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
+                viewerCountNumber.textContent = livekitRoom.numParticipants;
+            });
+            livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => {
+                viewerCountNumber.textContent = livekitRoom.numParticipants;
             });
 
-            // Fetch and render chat history on join
             fetchAndRenderChatHistory(currentRoomId);
-
         } catch (error) {
             console.error('SFU broadcast failed:', error);
             throw error;
@@ -391,18 +383,13 @@
         Object.values(peerConnections).forEach(pc => pc.close());
         peerConnections = {};
 
-        // --- Start of Fix ---
-        // Hide the streaming view specifically
         streamingSection.classList.add('hidden');
-        // Show the main dashboard container and the room selection view within it
         broadcastDashboard.classList.remove('hidden');
         showRoomSelection();
-        // --- End of Fix ---
-        await fetchAndRenderRooms(); // Refresh room list after leaving
+        await fetchAndRenderRooms();
     }
 
 
-    // --- WebRTC & SignalR (for Mesh) ---
     async function initializeSignalR() {
         signalRConnection = new signalR.HubConnectionBuilder().withUrl(`${API_URL}/broadcasthub?access_token=${jwtToken}`).withAutomaticReconnect().build();
         signalRConnection.on('NewViewer', async (viewerId) => {
@@ -415,7 +402,7 @@
         signalRConnection.on('ReceiveAnswerFromViewer', async (answer, viewerId) => {
             await peerConnections[viewerId]?.setRemoteDescription(new RTCSessionDescription(answer));
         });
-        signalRConnection.on('ReceiveChatMessage', (user, message) => displayChatMessage(user, message, user === myUsername));
+        signalRConnection.on('ReceiveChatMessage', (messageId, user, message) => displayChatMessage(messageId, user, message, user === myUsername));
         signalRConnection.on('ViewerLeft', (viewerId) => {
             peerConnections[viewerId]?.close();
             delete peerConnections[viewerId];
@@ -425,10 +412,15 @@
         });
         signalRConnection.on('BroadcastEnded', () => { alert('The broadcast has ended.'); handleLeave(); });
         signalRConnection.on('BroadcastExists', () => { alert('Error: A broadcast is already active in this room.'); showRoomSelection(); });
+        signalRConnection.on('UpdateViewerCount', (count) => { viewerCountNumber.textContent = count; });
+        signalRConnection.on('MessageDeleted', (messageId) => {
+            const msgElement = document.getElementById(`chat-msg-${messageId}`);
+            if (msgElement) msgElement.remove();
+        });
+
 
         try {
             await signalRConnection.start();
-            // Fetch and render chat history on join for mesh
             fetchAndRenderChatHistory(currentRoomId);
             return true;
         } catch (error) { return false; }
@@ -445,8 +437,6 @@
         return pc;
     }
 
-
-    // --- Media & UI Helpers ---
     async function getCameraStream() {
         const selectedSource = document.querySelector('input[name="cameraSource"]:checked').value;
         if (selectedSource === 'local') {
@@ -479,7 +469,6 @@
         localVideoContainer.classList.remove('hidden');
     }
 
-    // --- Chat ---
     async function fetchAndRenderChatHistory(roomId) {
         chatMessages.innerHTML = '';
         try {
@@ -488,37 +477,131 @@
             });
             if (!response.ok) return;
             const history = await response.json();
-            history.forEach(msg => displayChatMessage(msg.username, msg.content, msg.username === myUsername));
+            history.forEach(msg => displayChatMessage(msg.id, msg.username, msg.content, msg.username === myUsername));
         } catch (e) {
             console.error("Could not fetch chat history", e);
         }
     }
 
-    function sendChatMessage() {
+    async function sendChatMessage() {
         const text = chatInput.value;
         if (!text) return;
-        if (broadcastType === 'sfu' && livekitRoom) {
-            const data = new TextEncoder().encode(JSON.stringify({ username: myUsername, text }));
-            livekitRoom.localParticipant.publishData(data, LivekitClient.DataPacket_Kind.RELIABLE);
-            displayChatMessage(myUsername, text, true);
-        } else if (broadcastType === 'mesh' && signalRConnection) {
-            signalRConnection.invoke('SendChatMessage', currentRoomId, text);
-        }
         chatInput.value = '';
+
+        if (broadcastType === 'mesh' && signalRConnection) {
+            signalRConnection.invoke('SendChatMessage', currentRoomId, text);
+            return;
+        }
+
+        if (broadcastType === 'sfu' && livekitRoom) {
+            let payload = {
+                id: Date.now(),
+                username: myUsername,
+                content: text,
+                timestamp: new Date().toISOString()
+            };
+
+            if (jwtToken) {
+                try {
+                    const response = await fetch(`${API_URL}/api/rooms/${currentRoomId}/chat`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ Content: text })
+                    });
+                    if (response.ok) {
+                        const savedMessageDto = await response.json();
+                        payload = savedMessageDto;                             
+                    } else {
+                        console.warn('Could not save chat message to history. Sending as real-time only.');
+                    }
+                } catch (error) {
+                    console.error("API call to save chat message failed:", error);
+                }
+            }
+
+            console.log('--- BROADCASTER: Publishing Chat Data ---', payload);
+            const data = new TextEncoder().encode(JSON.stringify(payload));
+
+            livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'chat' });
+
+            displayChatMessage(payload.id, payload.username, payload.content, true);
+        }
     }
 
-    function displayChatMessage(user, message, isSelf) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('p-2', 'rounded-lg', 'mb-2', 'chat-message', 'max-w-xs', 'w-fit', 'break-words');
-        msgDiv.classList.toggle('self', isSelf);
-        msgDiv.classList.toggle('other', !isSelf);
-        msgDiv.innerHTML = `<span class="font-bold block">${isSelf ? "You" : user}</span> ${message}`;
-        // Insert at the bottom, and scroll down
-        chatMessages.appendChild(msgDiv);
+    function displayChatMessage(id, user, message, isSelf) {
+        const msgContainer = document.createElement('div');
+        msgContainer.id = `chat-msg-${id}`;
+        msgContainer.className = `chat-message flex items-start gap-2.5 p-2 w-full ${isSelf ? 'self' : 'other'}`;
+
+        const avatar = createAvatar(user);
+
+        const bubbleContainer = document.createElement('div');
+        bubbleContainer.className = 'flex flex-col w-full max-w-[320px]';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center space-x-2' + (isSelf ? ' justify-end flex-row-reverse' : '');
+
+        const usernameSpan = document.createElement('span');
+        usernameSpan.className = 'text-sm font-semibold text-white';
+        usernameSpan.textContent = isSelf ? "You" : user;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = `<i class="fas fa-times-circle text-gray-500 hover:text-red-400"></i>`;
+        deleteBtn.className = 'delete-msg-btn';
+        deleteBtn.dataset.messageId = id;
+        deleteBtn.onclick = () => handleDeleteMessage(id);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble flex flex-col w-full max-w-xs p-2.5 rounded-lg' + (isSelf ? ' rounded-br-none bg-blue-700' : ' rounded-bl-none bg-gray-600');
+        bubble.innerHTML = `<p class="text-sm font-normal text-white break-words">${message}</p>`;
+
+        header.appendChild(usernameSpan);
+        if (isAdmin || userRole === 'broadcaster') {
+            header.appendChild(deleteBtn);
+        }
+
+        bubbleContainer.appendChild(header);
+        bubbleContainer.appendChild(bubble);
+
+        if (isSelf) {
+            msgContainer.appendChild(bubbleContainer);
+            msgContainer.appendChild(avatar);
+        } else {
+            msgContainer.appendChild(avatar);
+            msgContainer.appendChild(bubbleContainer);
+        }
+
+        chatMessages.appendChild(msgContainer);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // --- Registration ---
+    function createAvatar(username) {
+        const colors = ['bg-red-500', 'bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
+        const charCodeSum = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const color = colors[charCodeSum % colors.length];
+        const initials = username.length > 1 ? (username[0] + username[1]).toUpperCase() : username.toUpperCase();
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = `relative inline-flex items-center justify-center w-8 h-8 overflow-hidden rounded-full ${color} flex-shrink-0`;
+        avatarDiv.innerHTML = `<span class="font-medium text-white">${initials}</span>`;
+        return avatarDiv;
+    }
+
+    function handleDeleteMessage(messageId) {
+        if (!confirm("Are you sure you want to delete this message?")) return;
+
+        if (broadcastType === 'sfu' && livekitRoom) {
+            const data = new TextEncoder().encode(JSON.stringify({ action: 'delete', id: messageId }));
+            livekitRoom.localParticipant.publishData(data, LivekitClient.DataPacket_Kind.RELIABLE, { topic: 'moderation' });
+            const msgElement = document.getElementById(`chat-msg-${messageId}`);
+            if (msgElement) msgElement.remove();
+
+        } else if (broadcastType === 'mesh' && signalRConnection) {
+            signalRConnection.invoke('DeleteMessage', currentRoomId, messageId).catch(err => console.error(err));
+        }
+    }
+
+
     async function handleRegister() {
         const username = document.getElementById('register-username').value;
         const password = document.getElementById('register-password').value;

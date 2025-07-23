@@ -27,6 +27,8 @@
     const chatInput = document.getElementById('chat-input');
     const chatSendButton = document.getElementById('chat-send-button');
     const qualityControls = document.getElementById('quality-controls');
+    const viewerCountNumber = document.getElementById('viewer-count-number');
+
 
     let signalRConnection;
     let peerConnection;
@@ -34,6 +36,7 @@
     let livekitRoom;
     let broadcastType;
     let myUsername;
+    let jwtToken = null;                     
 
     const iceServers = {
         iceServers: [
@@ -86,6 +89,7 @@
             } else {
                 await connectToMeshStream(connectionDetails);
             }
+            await fetchAndRenderChatHistory(currentRoomId);
         } catch (error) {
             console.error('Error joining stream:', error);
             statusDiv.textContent = `Error: ${error.message}`;
@@ -104,66 +108,37 @@
         statusDiv.textContent = 'SFU broadcast found! Connecting...';
         livekitRoom = new LivekitClient.Room();
 
-        livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            console.log('Track Subscribed:', track.kind, 'Track ID:', track.sid, 'Publication ID:', publication.sid);
-            qualityControls.innerHTML = '';             
+        livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+            console.log('--- CONSUMER: LiveKit Data Received ---', { topic, from: participant.identity });
+            try {
+                const messageDto = JSON.parse(new TextDecoder().decode(payload));
+                if (topic === 'chat') {
+                    displayChatMessage(messageDto.id, messageDto.username, messageDto.content, messageDto.username === myUsername);
+                } else if (topic === 'moderation' && messageDto.action === 'delete') {
+                    const msgElement = document.getElementById(`chat-msg-${messageDto.id}`);
+                    if (msgElement) msgElement.remove();
+                }
+            } catch (e) {
+                console.error("Failed to parse incoming data payload:", e);
+            }
+        });
 
+        livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+            qualityControls.innerHTML = '';
             if (track.kind === 'video') {
                 const element = track.attach();
                 remoteVideo.srcObject = element.srcObject;
-
-                setTimeout(() => {
-                    if (publication.kind === 'video' && publication.track) {
-                        const qualities = [
-                            { label: 'High', value: LivekitClient.VideoQuality.HIGH },
-                            { label: 'Medium', value: LivekitClient.VideoQuality.MEDIUM },
-                            { label: 'Low', value: LivekitClient.VideoQuality.LOW }
-                        ];
-
-                        console.log('Attempting to create quality control buttons...');
-
-                        qualities.forEach((q, index) => {
-                            const button = document.createElement('button');
-                            button.textContent = q.label;
-                            button.className = 'bg-gray-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded-md text-sm';
-                            button.onclick = async () => {
-                                console.log(`Setting video quality for ${publication.sid} to: ${q.label} (${q.value})`);
-                                try {
-                                    await publication.setVideoQuality(q.value);
-
-                                    Array.from(qualityControls.children).forEach(btn => {
-                                        btn.classList.remove('bg-cyan-700');
-                                        btn.classList.add('bg-gray-600');
-                                    });
-                                    button.classList.remove('bg-gray-600');
-                                    button.classList.add('bg-cyan-700');
-                                } catch (e) {
-                                    console.error(`Failed to set video quality to ${q.label}:`, e);
-                                }
-                            };
-                            qualityControls.appendChild(button);
-                        });
-
-                        if (qualityControls.children.length > 0) {
-                            qualityControls.children[0].click();
-                        }
-                    } else {
-                        console.warn("Subscribed track is not a video publication, or publication.track is null. Cannot show quality controls.");
-                        qualityControls.innerHTML = '<span class="text-gray-400 text-sm">Quality controls not applicable.</span>';
-                    }
-                }, 1000);                             
             } else if (track.kind === 'audio') {
-                console.log('Audio track subscribed.');
                 const element = track.attach();
                 remoteVideo.appendChild(element);
             }
         });
 
-
-        livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
-            const decoder = new TextDecoder();
-            const message = JSON.parse(decoder.decode(payload));
-            displayChatMessage(message.username, message.text, false);
+        livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
+            viewerCountNumber.textContent = livekitRoom.numParticipants;
+        });
+        livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => {
+            viewerCountNumber.textContent = livekitRoom.numParticipants;
         });
 
         livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => {
@@ -174,10 +149,12 @@
         livekitRoom.on(LivekitClient.RoomEvent.ConnectionStateChanged, (state) => {
             if (state === 'connected') {
                 statusDiv.textContent = 'Live stream connected!';
+                viewerCountNumber.textContent = livekitRoom.numParticipants;
             }
         });
 
         await livekitRoom.connect(liveKitUrl, token);
+        console.log('--- CONSUMER: Connected to LiveKit Room ---');
     }
 
     async function connectToMeshStream(details) {
@@ -190,7 +167,6 @@
             .build();
 
         signalRConnection.on('ReceiveOfferFromBroadcaster', async (offer, broadcasterId) => {
-            console.log('Received offer from broadcaster');
             peerConnection = createPeerConnection(broadcasterId);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
             const answer = await peerConnection.createAnswer();
@@ -207,13 +183,21 @@
             window.location.reload();
         });
 
-        signalRConnection.on('ReceiveChatMessage', (user, message) => {
-            displayChatMessage(user, message, user === myUsername);
+        signalRConnection.on('ReceiveChatMessage', (messageId, user, message) => {
+            displayChatMessage(messageId, user, message, user === myUsername);
+        });
+
+        signalRConnection.on('UpdateViewerCount', (count) => {
+            viewerCountNumber.textContent = count;
+        });
+
+        signalRConnection.on('MessageDeleted', (messageId) => {
+            const msgElement = document.getElementById(`chat-msg-${messageId}`);
+            if (msgElement) msgElement.remove();
         });
 
         try {
             await signalRConnection.start();
-            console.log('SignalR Connected for Mesh.');
             await signalRConnection.invoke('ViewBroadcast', currentRoomId);
         } catch (error) {
             console.error('SignalR Connection Error: ', error);
@@ -235,30 +219,98 @@
         return pc;
     }
 
-    function sendChatMessage() {
+    async function sendChatMessage() {
         const text = chatInput.value;
         if (!text) return;
+        chatInput.value = '';
 
-        if (broadcastType === 'sfu' && livekitRoom) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(JSON.stringify({ username: myUsername, text }));
-            livekitRoom.localParticipant.publishData(data, LivekitClient.DataPacket_Kind.RELIABLE);
-            displayChatMessage(myUsername, text, true);
-        } else if (broadcastType === 'mesh' && signalRConnection) {
+        if (broadcastType === 'mesh' && signalRConnection) {
             signalRConnection.invoke('SendChatMessage', currentRoomId, text)
                 .catch(err => console.error("Chat send error:", err));
+            return;
         }
-        chatInput.value = '';
+
+        if (broadcastType === 'sfu' && livekitRoom) {
+            const messageId = Date.now();
+            const payload = { id: messageId, username: myUsername, content: text, timestamp: new Date().toISOString() };
+            const data = new TextEncoder().encode(JSON.stringify(payload));
+
+            console.log('--- CONSUMER: Publishing Chat Data ---', payload);
+
+            livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'chat' });
+
+            displayChatMessage(payload.id, payload.username, payload.content, true);
+        }
     }
 
-    function displayChatMessage(user, message, isSelf) {
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('p-2', 'rounded-lg', 'mb-2', 'chat-message', 'max-w-xs', 'w-fit');
-        msgDiv.classList.toggle('self', isSelf);
-        msgDiv.classList.toggle('other', !isSelf);
-        msgDiv.innerHTML = `<span class="font-bold block">${isSelf ? "You" : user}</span> ${message}`;
-        chatMessages.insertBefore(msgDiv, chatMessages.firstChild);
-        chatMessages.scrollTop = chatMessages.scrollHeight;                         
+    async function fetchAndRenderChatHistory(roomId) {
+        const apiKey = apiKeyInput.value;
+        if (!apiKey) {
+            console.error("API Key not found, cannot fetch chat history.");
+            return;
+        }
+        chatMessages.innerHTML = '';
+        try {
+            const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, {
+                headers: { 'X-Api-Key': apiKey }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch chat history with status: ${response.status}`);
+            }
+            const history = await response.json();
+            history.forEach(msg => displayChatMessage(msg.id, msg.username, msg.content, msg.username === myUsername));
+        } catch (e) {
+            console.error("Could not fetch chat history", e);
+        }
+    }
+
+    function displayChatMessage(id, user, message, isSelf) {
+        const msgContainer = document.createElement('div');
+        msgContainer.id = `chat-msg-${id}`;
+        msgContainer.className = `chat-message flex items-start gap-2.5 p-2 w-full ${isSelf ? 'self' : 'other'}`;
+
+        const avatar = createAvatar(user);
+
+        const bubbleContainer = document.createElement('div');
+        bubbleContainer.className = 'flex flex-col w-full max-w-[320px]';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center space-x-2' + (isSelf ? ' justify-end flex-row-reverse' : '');
+
+        const usernameSpan = document.createElement('span');
+        usernameSpan.className = 'text-sm font-semibold text-white';
+        usernameSpan.textContent = isSelf ? "You" : user;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble flex flex-col w-full max-w-xs p-2.5 rounded-lg' + (isSelf ? ' rounded-br-none bg-blue-700' : ' rounded-bl-none bg-gray-600');
+        bubble.innerHTML = `<p class="text-sm font-normal text-white break-words">${message}</p>`;
+
+        header.appendChild(usernameSpan);
+        bubbleContainer.appendChild(header);
+        bubbleContainer.appendChild(bubble);
+
+        if (isSelf) {
+            msgContainer.appendChild(bubbleContainer);
+            msgContainer.appendChild(avatar);
+        } else {
+            msgContainer.appendChild(avatar);
+            msgContainer.appendChild(bubbleContainer);
+        }
+
+        chatMessages.insertBefore(msgContainer, chatMessages.firstChild);
+    }
+
+    function createAvatar(username) {
+        const colors = ['bg-red-500', 'bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
+        const charCodeSum = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const color = colors[charCodeSum % colors.length];
+        const initials = username.length > 1 ? (username[0] + username[1]).toUpperCase() : username.toUpperCase();
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = `relative inline-flex items-center justify-center w-8 h-8 overflow-hidden rounded-full ${color} flex-shrink-0`;
+        avatarDiv.innerHTML = `<span class="font-medium text-white">${initials}</span>`;
+        return avatarDiv;
     }
 
     function switchToStreamingView() {

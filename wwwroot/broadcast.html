@@ -20,23 +20,26 @@
         }
 
         .chat-box {
-            height: calc(90vh - 240px);    
+            height: calc(90vh - 240px);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
 
-        .chat-message {
-            background-color: #374151;
+        .chat-message.self {
+            align-self: flex-end;
         }
 
-            .chat-message.self {
+            .chat-message.self .chat-bubble {
                 background-color: #1d4ed8;
-                align-self: flex-end;
             }
 
-            .chat-message.other {
-                align-self: flex-start;
+        .chat-message.other {
+            align-self: flex-start;
+        }
+
+            .chat-message.other .chat-bubble {
+                background-color: #374151;
             }
 
         ::-webkit-scrollbar {
@@ -44,18 +47,18 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #1f2937;     
+            background: #1f2937;
             border-radius: 6px;
         }
 
         ::-webkit-scrollbar-thumb {
-            background-color: #4b5563;     
+            background-color: #4b5563;
             border-radius: 6px;
             border: 2px solid #1f2937;
         }
 
             ::-webkit-scrollbar-thumb:hover {
-                background-color: #6b7280;     
+                background-color: #6b7280;
             }
 
         * {
@@ -194,7 +197,11 @@
         <div id="streaming-section" class="hidden w-full max-w-7xl">
             <div class="flex justify-between items-center bg-gray-800 p-4 rounded-lg shadow-xl mb-6">
                 <p id="status" class="text-yellow-400"></p>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-4">
+                    <div id="viewer-count" class="flex items-center gap-2 text-lg">
+                        <i class="fas fa-eye text-green-400"></i>
+                        <span id="viewer-count-number">0</span>
+                    </div>
                     <button id="record-button" class="bg-purple-800 hover:bg-purple-900 text-white font-bold py-2 px-6 rounded-md">Start Recording</button>
                     <button id="leave-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md">Leave</button>
                 </div>

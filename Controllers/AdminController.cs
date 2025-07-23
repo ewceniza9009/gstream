@@ -2,6 +2,7 @@
 using gstream.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace gstream.Controllers
@@ -15,16 +16,37 @@ namespace gstream.Controllers
         private readonly IBroadcastStateService _stateService;
         private readonly LiveKitService _liveKitService;
         private readonly ILogger<AdminController> _logger;
+        private readonly IRoomService _roomService;
 
-        public AdminController(IUserService userService, IBroadcastStateService stateService, LiveKitService liveKitService, ILogger<AdminController> logger)
+
+        public AdminController(IUserService userService, IBroadcastStateService stateService, LiveKitService liveKitService, ILogger<AdminController> logger, IRoomService roomService)
         {
             _userService = userService;
             _stateService = stateService;
             _liveKitService = liveKitService;
             _logger = logger;
+            _roomService = roomService;
         }
 
-        // --- User Management Endpoints ---
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetSystemStats()
+        {
+            var activeStreams = await _stateService.GetAllActiveStreamsAsync();
+            var totalViewers = activeStreams.Sum(s => s.Value);
+
+            var popularRooms = activeStreams
+                .OrderByDescending(s => s.Value)
+                .Take(5)
+                .Select(s => new { RoomName = s.Key, Viewers = s.Value });
+
+            return Ok(new
+            {
+                TotalActiveStreams = activeStreams.Count,
+                TotalViewers = totalViewers,
+                PopularRooms = popularRooms
+            });
+        }
+
 
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers()
@@ -55,8 +77,6 @@ namespace gstream.Controllers
             return NoContent();
         }
 
-        // --- Broadcast Management Endpoints ---
-
         [HttpPost("broadcasts/flush")]
         public async Task<IActionResult> FlushBroadcasts()
         {
@@ -64,7 +84,6 @@ namespace gstream.Controllers
             return Ok(new { message = "All active broadcasts have been successfully flushed." });
         }
 
-        // THIS IS THE ENDPOINT THAT FIXES YOUR 404 ERROR
         [HttpPost("broadcasts/end/{roomName}")]
         public async Task<IActionResult> EndBroadcast(string roomName)
         {
@@ -75,21 +94,15 @@ namespace gstream.Controllers
 
             _logger.LogInformation("Admin is force-ending broadcast in room: {RoomName}", roomName);
 
-            // Clean up LiveKit room for SFU broadcasts
             var broadcastType = await _stateService.GetBroadcastTypeAsync(roomName);
             if (broadcastType == "sfu")
             {
                 await _liveKitService.DeleteRoomAsync(roomName);
             }
 
-            // This will find the broadcaster and end the broadcast in the database and Redis
             var broadcasterIdentity = await _stateService.GetBroadcasterConnectionIdAsync(roomName);
             if (!string.IsNullOrEmpty(broadcasterIdentity))
             {
-                // For SFU, identity is username; for mesh, it's connection ID. We need username.
-                // This part of the logic needs refinement, but for now we find the user associated with the broadcast.
-                // In a more complex system, we'd look up the user by connectionId if it's mesh.
-                // For this app's logic, GetBroadcasterConnectionIdAsync returns the username for SFU, which is what we need.
                 await _stateService.EndBroadcastAsync(roomName, broadcasterIdentity);
             }
 

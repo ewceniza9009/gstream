@@ -9,10 +9,12 @@ namespace gstream.Hubs
     public class BroadcastHub : Hub
     {
         private readonly IBroadcastStateService _stateService;
+        private readonly IRoomService _roomService;
 
-        public BroadcastHub(IBroadcastStateService stateService)
+        public BroadcastHub(IBroadcastStateService stateService, IRoomService roomService)
         {
             _stateService = stateService;
+            _roomService = roomService;
         }
 
         public async Task StartBroadcast(string roomId, string broadcastType)
@@ -36,10 +38,26 @@ namespace gstream.Hubs
 
             var username = Context.User.Identity?.Name ?? $"User-{Context.ConnectionId.Substring(0, 5)}";
 
-            await _stateService.SaveChatMessageAsync(roomId, username, message);
+            var savedMessage = await _roomService.SaveMessageAsync(roomId, username, message);
 
-            await Clients.Group(roomId).SendAsync("ReceiveChatMessage", username, message);
+            if (savedMessage != null)
+            {
+                await Clients.Group(roomId).SendAsync("ReceiveChatMessage", savedMessage.Id, savedMessage.Username, savedMessage.Content);
+            }
         }
+
+        public async Task DeleteMessage(string roomId, int messageId)
+        {
+            var username = Context.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username)) return;
+
+            var success = await _roomService.DeleteMessageAsync(messageId, username);
+            if (success)
+            {
+                await Clients.Group(roomId).SendAsync("MessageDeleted", messageId);
+            }
+        }
+
 
         public async Task ViewBroadcast(string roomId)
         {
@@ -52,7 +70,11 @@ namespace gstream.Hubs
             await _stateService.AddViewerToBroadcastAsync(roomId, Context.ConnectionId);
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
             await Clients.Client(broadcasterId).SendAsync("NewViewer", Context.ConnectionId);
+
+            var viewerCount = await _stateService.IncrementViewerCountAsync(roomId);
+            await Clients.Group(roomId).SendAsync("UpdateViewerCount", viewerCount);
         }
+
 
         public async Task SendOfferToViewer(string viewerId, object offer)
         {
@@ -93,6 +115,8 @@ namespace gstream.Hubs
                     {
                         await Clients.Client(broadcasterId).SendAsync("ViewerLeft", Context.ConnectionId);
                     }
+                    var viewerCount = await _stateService.DecrementViewerCountAsync(roomId);
+                    await Clients.Group(roomId).SendAsync("UpdateViewerCount", viewerCount);
                 }
             }
 

@@ -11,6 +11,10 @@
         Task RemoveViewerFromBroadcastAsync(string roomId, string connectionId);
         Task<(string? roomId, bool isBroadcaster)> GetConnectionInfoAsync(string connectionId);
         Task FlushAllBroadcastsAsync();
-        Task SaveChatMessageAsync(string roomId, string username, string message);
+        Task<long> GetViewerCountAsync(string roomId);
+        Task<long> IncrementViewerCountAsync(string roomId);
+        Task<long> DecrementViewerCountAsync(string roomId);
+        Task ClearViewerCountAsync(string roomId);
+        Task<Dictionary<string, long>> GetAllActiveStreamsAsync();
     }
 }
