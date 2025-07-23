@@ -20,59 +20,67 @@
 ## 📁 Project Structure
 
 <pre>
-* `gstream`
-    * ├── `Authentication` - Handles custom authentication logic.
-        * └── `ApiKeyAuth.cs` - Implements API key-based authentication for consumers.
-    * ├── `Controllers` - Manages incoming HTTP requests and API endpoints.
-        * ├── `AdminController.cs` - API endpoints for the admin dashboard (user/room management).
-        * ├── `AuthController.cs` - Handles user login, registration, and password changes.
-        * ├── `BroadcastController.cs` - Manages starting, joining, and recording broadcasts.
-        * ├── `RoomController.cs` - API for creating, reading, updating, and deleting rooms.
-        * └── `UserController.cs` - API for user-specific actions like managing API keys.
-    * ├── `Hubs` - Contains SignalR hubs for real-time communication.
-        * ├── `BroadcastHub.cs` - Manages WebSocket connections for multi-viewer broadcasts (Mesh/SFU).
-        * └── `StreamingHub.cs` - Manages WebSocket connections for one-on-one video calls.
-    * ├── `Migrations` - Contains Entity Framework code for database schema changes.
-    * ├── `Models` - Defines the data structures and objects for the application.
-        * ├── `Data` - Entity Framework models that map to database tables.
-            * ├── `ApplicationDbContext.cs` - The main database context for Entity Framework.
-            * ├── `ChatMessage.cs` - Defines the `ChatMessage` table structure.
-            * ├── `Room.cs` - Defines the `Room` table structure.
-            * └── `User.cs` - Defines the `User` table structure.
-        * ├── `Mongo` - Defines models for MongoDB (if used).
-        * ├── `ChangePasswordRequest.cs` - Data model for the change password API endpoint.
-        * ├── `ChatMessageDto.cs` - Data Transfer Object for sending chat messages to the client.
-        * ├── `LoginRequest.cs` - Data model for the login/registration API endpoints.
-        * ├── `RoomDtp.cs` - Data Transfer Object for sending room data to the client.
-        * ├── `RoomRequest.cs` - Data model for room creation/update API endpoints.
-        * └── `UserModel.cs` - Data model for user information, used in the admin panel.
-    * ├── `Properties` - Contains project configuration files.
-        * └── `launchSettings.json` - Defines profiles for running the application locally.
-    * ├── `Services` - Contains business logic and interacts with the database.
-        * ├── `IBroadcastStateService.cs` - Interface for managing the state of live broadcasts.
-        * ├── `IRoomService.cs` - Interface for room management logic.
-        * ├── `IUserService.cs` - Interface for user management logic.
-        * ├── `LiveKitService.cs` - Handles interactions with the LiveKit SFU server.
-        * ├── `RedisBroadcastStateService.cs` - Implements broadcast state management using Redis.
-        * ├── `RoomService.cs` - Implements the room management logic.
-        * └── `UserService.cs` - Implements the user management logic.
-    * ├── `wwwroot` - Contains all static files served to the client (HTML, JS, CSS).
-        * ├── `js` - Contains all JavaScript files.
-            * ├── `account.js` - Logic for the "My Account" page.
-            * ├── `admin.js` - Logic for the Admin Dashboard.
-            * ├── `broadcast.js` - Logic for the Broadcaster Dashboard.
-            * ├── `consumer.js` - Logic for the broadcast viewing page.
-            * └── `streaming.js` - Logic for the one-on-one streaming page.
-        * ├── `account.html` - The "My Account" page for users.
-        * ├── `admin.html` - The Admin Dashboard page.
-        * ├── `broadcast.html` - The broadcaster's main page for logging in and starting streams.
-        * ├── `consumer.html` - The page for viewing a broadcast.
-        * ├── `index.html` - The main landing page of the application.
-        * └── `streaming.html` - The page for one-on-one video calls.
-    * ├── `gstream.csproj` - The main C# project file, defines dependencies and settings.
-    * ├── `gstream.http` - File for testing API endpoints directly within Visual Studio.
-    * ├── `gstream.sln` - The Visual Studio solution file.
-    * └── `Program.cs` - The main entry point of the ASP.NET Core application, where services are configured.
+gstream/
+├── Authentication/                 # Handles custom authentication logic
+│   └── ApiKeyAuth.cs              # Implements API key-based authentication for consumers
+│
+├── Controllers/                   # Manages incoming HTTP requests and API endpoints
+│   ├── AdminController.cs         # Admin dashboard API (user/room management)
+│   ├── AuthController.cs          # Handles user login, registration, password changes
+│   ├── BroadcastController.cs     # Starts, joins, and records broadcasts
+│   ├── RoomController.cs          # CRUD operations for rooms
+│   └── UserController.cs          # User-specific APIs (e.g., manage API keys)
+│
+├── Hubs/                          # SignalR hubs for real-time communication
+│   ├── BroadcastHub.cs            # Manages WebSocket for multi-viewer broadcasts
+│   └── StreamingHub.cs            # WebSocket hub for one-on-one video calls
+│
+├── Migrations/                    # EF Core database schema changes
+│
+├── Models/                        # Application data models and DTOs
+│   ├── Data/                      # EF models mapped to database tables
+│   │   ├── ApplicationDbContext.cs # Main EF Core DbContext
+│   │   ├── ChatMessage.cs         # Chat message table definition
+│   │   ├── Room.cs                # Room table definition
+│   │   └── User.cs                # User table definition
+│   ├── Mongo/                     # MongoDB models (if applicable)
+│   ├── ChangePasswordRequest.cs   # Model for change password API
+│   ├── ChatMessageDto.cs          # DTO for sending chat messages to clients
+│   ├── LoginRequest.cs            # Model for login/registration API
+│   ├── RoomDtp.cs                 # DTO for sending room data to clients
+│   ├── RoomRequest.cs             # Model for room creation/update
+│   └── UserModel.cs               # Admin panel user model
+│
+├── Properties/
+│   └── launchSettings.json        # Configurations for local development
+│
+├── Services/                      # Business logic and service layer
+│   ├── IBroadcastStateService.cs  # Broadcast state service interface
+│   ├── IRoomService.cs            # Room service interface
+│   ├── IUserService.cs            # User service interface
+│   ├── LiveKitService.cs          # Integration with LiveKit SFU server
+│   ├── RedisBroadcastStateService.cs # Broadcast state management using Redis
+│   ├── RoomService.cs             # Implementation of room logic
+│   └── UserService.cs             # Implementation of user logic
+│
+├── wwwroot/                       # Static web assets (HTML, JS, CSS)
+│   ├── js/
+│   │   ├── account.js             # My Account page logic
+│   │   ├── admin.js               # Admin dashboard logic
+│   │   ├── broadcast.js           # Broadcaster dashboard logic
+│   │   ├── consumer.js            # Broadcast viewer page logic
+│   │   └── streaming.js           # One-on-one streaming page logic
+│   ├── account.html               # My Account page
+│   ├── admin.html                 # Admin dashboard
+│   ├── broadcast.html             # Broadcaster main interface
+│   ├── consumer.html              # Broadcast viewer interface
+│   ├── index.html                 # Main landing page
+│   └── streaming.html             # One-on-one call page
+│
+├── gstream.csproj                 # Main C# project file
+├── gstream.http                   # HTTP client requests for testing APIs
+├── gstream.sln                    # Visual Studio solution file
+└── Program.cs                     # ASP.NET Core entry point and service configuration
 </pre>
 
 ---
