@@ -607,6 +607,7 @@
                 });
                 displayChatMessage(payload.id, payload.username, payload.content, true);
             }
+        }
 
         function displayChatMessage(id, user, message, isSelf) {
             const msgContainer = document.createElement('div');
