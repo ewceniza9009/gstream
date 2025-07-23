@@ -34,7 +34,7 @@
         const dashboardHeader = document.getElementById('dashboard-header');
         const showRegisterLink = document.getElementById('show-register-link');
         const showLoginLink = document.getElementById('show-login-link');
-        const streamingSection = document.getElementById('streaming-section');                     
+        const streamingSection = document.getElementById('streaming-section');
 
         let localVideoContainer, screenShareContainer, chatSection, localVideo, screenShareVideo, statusDiv,
             viewerCountNumber, recordBtn, leaveBtn, startScreenShareBtn, stopScreenShareBtn, createPollBtn, pollModal, pollModalForm,
@@ -58,9 +58,12 @@
         let streamingEventListenersInitialized = false;
 
         const iceServers = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+            iceServers: [{
+                urls: 'stun:stun.l.google.com:19302'
+            },
+            {
+                urls: 'stun:stun1.l.google.com:19302'
+            }
             ]
         };
 
@@ -135,7 +138,9 @@
                 try {
                     const response = await fetch(`${API_URL}/api/broadcast/record/start/${currentRoomId}`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${jwtToken}` }
+                        headers: {
+                            'Authorization': `Bearer ${jwtToken}`
+                        }
                     });
                     const result = await response.json();
                     if (!response.ok) throw new Error(result.message || 'Failed to start recording.');
@@ -152,8 +157,13 @@
         }
 
         function parseJwt(token) {
-            try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
+            try {
+                return JSON.parse(atob(token.split('.')[1]));
+            } catch (e) {
+                return null;
+            }
         }
+
         function updateNav() {
             if (!jwtToken) return;
             const decodedToken = parseJwt(jwtToken);
@@ -169,8 +179,13 @@
             try {
                 const response = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ Username: username, Password: password })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Username: username,
+                        Password: password
+                    })
                 });
                 if (!response.ok) throw new Error((await response.json()).message || 'Invalid credentials');
                 const data = await response.json();
@@ -195,6 +210,7 @@
                 loginError.textContent = `Login failed: ${error.message}`;
             }
         }
+
         function initializeApplicationState() {
             jwtToken = localStorage.getItem('jwtToken');
             myUsername = localStorage.getItem('myUsername');
@@ -217,7 +233,8 @@
             await handleLeave();
             localStorage.removeItem('jwtToken');
             localStorage.removeItem('myUsername');
-            jwtToken = null; myUsername = null;
+            jwtToken = null;
+            myUsername = null;
             dashboardHeader.classList.add('hidden');
             broadcastDashboard.classList.add('hidden');
             streamingSection.classList.add('hidden');
@@ -230,6 +247,7 @@
             roomSelectionSection.classList.remove('hidden');
             streamingSection.classList.add('hidden');
         }
+
         function showConfigureSection(roomName) {
             roomSelectionSection.classList.add('hidden');
             configureSection.classList.remove('hidden');
@@ -239,7 +257,11 @@
         async function fetchAndRenderRooms() {
             roomList.innerHTML = '<p class="text-gray-400 col-span-full text-center">Loading rooms...</p>';
             try {
-                const response = await fetch(`${API_URL}/api/rooms`, { headers: { 'Authorization': `Bearer ${jwtToken}` } });
+                const response = await fetch(`${API_URL}/api/rooms`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
                 if (!response.ok) throw new Error('Failed to fetch rooms.');
                 allRooms = await response.json();
                 renderRoomList(allRooms);
@@ -247,6 +269,7 @@
                 roomList.innerHTML = `<p class="text-red-400 p-4 col-span-full">${error.message}</p>`;
             }
         }
+
         function renderRoomList(rooms) {
             roomList.innerHTML = '';
             if (rooms.length === 0) {
@@ -254,7 +277,11 @@
                 return;
             }
             rooms.forEach(room => {
-                const statusColors = { 'Broadcasting': 'bg-red-500', 'Open': 'bg-green-500', 'Ended': 'bg-gray-500' };
+                const statusColors = {
+                    'Broadcasting': 'bg-red-500',
+                    'Open': 'bg-green-500',
+                    'Ended': 'bg-gray-500'
+                };
                 const card = document.createElement('div');
                 card.className = 'bg-gray-700 rounded-lg p-4 flex flex-col justify-between shadow-md';
                 card.innerHTML = `<div><div class="flex justify-between items-start"><h4 class="text-lg font-bold text-white break-all pr-2">${room.name}</h4><span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${statusColors[room.status] || 'bg-yellow-500'} text-white whitespace-nowrap">${room.status}</span></div><p class="text-sm text-gray-400 mt-1">${room.broadcasterUsername ? `Broadcaster: ${room.broadcasterUsername}` : 'Ready to stream'}</p></div><div class="flex justify-end gap-2 mt-4"><button data-room-name="${room.name}" class="use-room-btn bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded text-sm" ${room.status === 'Broadcasting' ? 'disabled' : ''}>${room.status === 'Broadcasting' ? 'In Use' : 'Use'}</button></div>`;
@@ -262,6 +289,7 @@
             });
             document.querySelectorAll('.use-room-btn').forEach(btn => btn.addEventListener('click', (e) => showConfigureSection(e.currentTarget.dataset.roomName)));
         }
+
         function handleSearch(e) {
             const query = e.target.value.toLowerCase();
             const filteredRooms = allRooms.filter(room => room.name.toLowerCase().includes(query));
@@ -272,7 +300,10 @@
             userRole = 'broadcaster';
             currentRoomId = document.getElementById('room-id').value;
             broadcastType = document.querySelector('input[name="broadcastType"]:checked').value;
-            if (!currentRoomId) { alert('Please select a room first.'); return; }
+            if (!currentRoomId) {
+                alert('Please select a room first.');
+                return;
+            }
             try {
                 localStream = await getCameraStream();
                 switchToStreamingView();
@@ -298,28 +329,56 @@
         async function startSfuBroadcast() {
             statusDiv.textContent = 'Initializing SFU broadcast...';
             try {
-                const response = await fetch(`${API_URL}/api/broadcast/start/sfu/${currentRoomId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${jwtToken}` } });
+                const response = await fetch(`${API_URL}/api/broadcast/start/sfu/${currentRoomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
                 if (!response.ok) throw new Error((await response.json()).message || 'Failed to initialize SFU broadcast.');
-                const { liveKitUrl, token, username } = await response.json();
+                const {
+                    liveKitUrl,
+                    token,
+                    username
+                } = await response.json();
                 myUsername = username;
                 livekitRoom = new LivekitClient.Room();
                 livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-                    console.log('--- BROADCASTER: LiveKit Data Received ---', { topic, from: participant.identity });
+                    console.log('--- BROADCASTER: LiveKit Data Received ---', {
+                        topic,
+                        from: participant.identity
+                    });
                     try {
                         const message = JSON.parse(new TextDecoder().decode(payload));
-                        if (topic === 'chat') { displayChatMessage(message.id, message.username, message.content, message.username === myUsername); }
-                        else if (topic === 'moderation' && message.action === 'delete') { const msgElement = document.getElementById(`chat-msg-${message.id}`); if (msgElement) msgElement.remove(); }
-                        else if (topic === 'reaction') { showReaction(message.emoji); }
-                        else if (topic === 'poll') { handlePollMessage(message); }
-                    } catch (e) { console.error("Failed to parse incoming data payload:", e); }
+                        if (topic === 'chat') {
+                            displayChatMessage(message.id, message.username, message.content, message.username === myUsername);
+                        } else if (topic === 'moderation' && message.action === 'delete') {
+                            const msgElement = document.getElementById(`chat-msg-${message.id}`);
+                            if (msgElement) msgElement.remove();
+                        } else if (topic === 'reaction') {
+                            showReaction(message.emoji);
+                        } else if (topic === 'poll') {
+                            handlePollMessage(message);
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse incoming data payload:", e);
+                    }
                 });
                 await livekitRoom.connect(liveKitUrl, token);
                 console.log('--- BROADCASTER: Connected to LiveKit Room ---');
                 statusDiv.textContent = `Broadcasting to room: ${currentRoomId} (SFU)`;
-                if (localStream.getVideoTracks().length > 0) { webcamPublication = await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0], { name: 'camera' }); }
+                if (localStream.getVideoTracks().length > 0) {
+                    webcamPublication = await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0], {
+                        name: 'camera'
+                    });
+                }
                 if (localStream.getAudioTracks().length > 0) await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
-                livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => { viewerCountNumber.textContent = livekitRoom.numParticipants; });
-                livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => { viewerCountNumber.textContent = livekitRoom.numParticipants; });
+                livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
+                    viewerCountNumber.textContent = livekitRoom.numParticipants;
+                });
+                livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => {
+                    viewerCountNumber.textContent = livekitRoom.numParticipants;
+                });
                 fetchAndRenderChatHistory(currentRoomId);
             } catch (error) {
                 console.error('SFU broadcast failed:', error);
@@ -345,8 +404,16 @@
                 peerConnections = {};
             }
             if (userRole === 'broadcaster' && broadcastType === 'sfu' && currentRoomId) {
-                try { await fetch(`${API_URL}/api/broadcast/end/sfu/${currentRoomId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${jwtToken}` } }); }
-                catch (error) { console.error('Error sending end signal:', error); }
+                try {
+                    await fetch(`${API_URL}/api/broadcast/end/sfu/${currentRoomId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${jwtToken}`
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error sending end signal:', error);
+                }
             }
             streamingSection.classList.add('hidden');
             broadcastDashboard.classList.remove('hidden');
@@ -356,12 +423,18 @@
         async function handleScreenShare(enabled) {
             if (enabled) {
                 try {
-                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true
+                    });
                     const screenTrack = screenShareStream.getVideoTracks()[0];
                     screenShareVideo.srcObject = screenShareStream;
                     screenShareContainer.classList.remove('hidden');
-                    screenSharePublication = await livekitRoom.localParticipant.publishTrack(screenTrack, { name: 'screen' });
-                    if (webcamPublication) { await livekitRoom.localParticipant.unpublishTrack(webcamPublication.trackSid); }
+                    screenSharePublication = await livekitRoom.localParticipant.publishTrack(screenTrack, {
+                        name: 'screen'
+                    });
+                    if (webcamPublication) {
+                        await livekitRoom.localParticipant.unpublishTrack(webcamPublication.trackSid);
+                    }
                     screenTrack.onended = () => handleScreenShare(false);
                     startScreenShareBtn.classList.add('hidden');
                     stopScreenShareBtn.classList.remove('hidden');
@@ -378,7 +451,9 @@
                     screenShareStream.getTracks().forEach(track => track.stop());
                 }
                 if (webcamPublication && livekitRoom && !livekitRoom.localParticipant.getTrackPublication(webcamPublication.source)) {
-                    await livekitRoom.localParticipant.publishTrack(webcamPublication.track, { name: 'camera' });
+                    await livekitRoom.localParticipant.publishTrack(webcamPublication.track, {
+                        name: 'camera'
+                    });
                 }
                 screenSharePublication = null;
                 screenShareStream = null;
@@ -406,8 +481,13 @@
                 peerConnections[viewerId]?.close();
                 delete peerConnections[viewerId];
             });
-            signalRConnection.on('BroadcastEnded', () => { alert('The broadcast has ended.'); handleLeave(); });
-            signalRConnection.on('UpdateViewerCount', (count) => { viewerCountNumber.textContent = count; });
+            signalRConnection.on('BroadcastEnded', () => {
+                alert('The broadcast has ended.');
+                handleLeave();
+            });
+            signalRConnection.on('UpdateViewerCount', (count) => {
+                viewerCountNumber.textContent = count;
+            });
             signalRConnection.on('MessageDeleted', (messageId) => {
                 const msgElement = document.getElementById(`chat-msg-${messageId}`);
                 if (msgElement) msgElement.remove();
@@ -415,19 +495,27 @@
             try {
                 await signalRConnection.start();
                 return true;
-            } catch (error) { return false; }
+            } catch (error) {
+                return false;
+            }
         }
+
         function createPeerConnection(peerId) {
             const pc = new RTCPeerConnection(iceServers);
             peerConnections[peerId] = pc;
-            pc.onicecandidate = event => { if (event.candidate) signalRConnection.invoke('SendIceCandidate', peerId, event.candidate); };
+            pc.onicecandidate = event => {
+                if (event.candidate) signalRConnection.invoke('SendIceCandidate', peerId, event.candidate);
+            };
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
             return pc;
         }
         async function getCameraStream() {
             const selectedSource = document.querySelector('input[name="cameraSource"]:checked').value;
             if (selectedSource === 'local') {
-                return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                return await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
             } else {
                 const url = ipCameraUrlInput.value;
                 if (!url) throw new Error('Please enter the IP Camera stream URL.');
@@ -446,6 +534,7 @@
                 });
             }
         }
+
         function switchToStreamingView() {
             document.getElementById('broadcast-dashboard').classList.add('hidden');
             initializeStreamingEventListeners();
@@ -456,11 +545,17 @@
         async function fetchAndRenderChatHistory(roomId) {
             chatMessages.innerHTML = '';
             try {
-                const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, { headers: { 'Authorization': `Bearer ${jwtToken}` } });
+                const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, {
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`
+                    }
+                });
                 if (!response.ok) return;
                 const history = await response.json();
                 history.forEach(msg => displayChatMessage(msg.id, msg.username, msg.content, msg.username === myUsername));
-            } catch (e) { console.error("Could not fetch chat history", e); }
+            } catch (e) {
+                console.error("Could not fetch chat history", e);
+            }
         }
         async function sendChatMessage() {
             const text = chatInput.value;
@@ -471,23 +566,42 @@
                 return;
             }
             if (broadcastType === 'sfu' && livekitRoom) {
-                let payload = { id: Date.now(), username: myUsername, content: text, timestamp: new Date().toISOString() };
+                let payload = {
+                    id: Date.now(),
+                    username: myUsername,
+                    content: text,
+                    timestamp: new Date().toISOString()
+                };
                 if (jwtToken) {
                     try {
                         const response = await fetch(`${API_URL}/api/rooms/${currentRoomId}/chat`, {
                             method: 'POST',
-                            headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ Content: text })
+                            headers: {
+                                'Authorization': `Bearer ${jwtToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                Content: text
+                            })
                         });
-                        if (response.ok) { payload = await response.json(); }
-                        else { console.warn('Could not save chat message to history.'); }
-                    } catch (error) { console.error("API call to save chat message failed:", error); }
+                        if (response.ok) {
+                            payload = await response.json();
+                        } else {
+                            console.warn('Could not save chat message to history.');
+                        }
+                    } catch (error) {
+                        console.error("API call to save chat message failed:", error);
+                    }
                 }
                 const data = new TextEncoder().encode(JSON.stringify(payload));
-                livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'chat' });
+                livekitRoom.localParticipant.publishData(data, {
+                    reliable: true,
+                    topic: 'chat'
+                });
                 displayChatMessage(payload.id, payload.username, payload.content, true);
             }
         }
+
         function displayChatMessage(id, user, message, isSelf) {
             const msgContainer = document.createElement('div');
             msgContainer.id = `chat-msg-${id}`;
@@ -509,14 +623,22 @@
             bubble.className = 'chat-bubble flex flex-col w-full max-w-xs p-2.5 rounded-lg' + (isSelf ? ' rounded-br-none bg-blue-700' : ' rounded-bl-none bg-gray-600');
             bubble.innerHTML = `<p class="text-sm font-normal text-white break-words">${message}</p>`;
             header.appendChild(usernameSpan);
-            if (isAdmin || userRole === 'broadcaster') { header.appendChild(deleteBtn); }
+            if (isAdmin || userRole === 'broadcaster') {
+                header.appendChild(deleteBtn);
+            }
             bubbleContainer.appendChild(header);
             bubbleContainer.appendChild(bubble);
-            if (isSelf) { msgContainer.appendChild(bubbleContainer); msgContainer.appendChild(avatar); }
-            else { msgContainer.appendChild(avatar); msgContainer.appendChild(bubbleContainer); }
+            if (isSelf) {
+                msgContainer.appendChild(bubbleContainer);
+                msgContainer.appendChild(avatar);
+            } else {
+                msgContainer.appendChild(avatar);
+                msgContainer.appendChild(bubbleContainer);
+            }
             chatMessages.appendChild(msgContainer);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+
         function createAvatar(username) {
             const colors = ['bg-red-500', 'bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
             const charCodeSum = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -527,16 +649,26 @@
             avatarDiv.innerHTML = `<span class="font-medium text-white">${initials}</span>`;
             return avatarDiv;
         }
+
         function handleDeleteMessage(messageId) {
             if (!confirm("Are you sure you want to delete this message?")) return;
             if (broadcastType === 'sfu' && livekitRoom) {
-                const data = new TextEncoder().encode(JSON.stringify({ action: 'delete', id: messageId }));
-                livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'moderation' });
+                const data = new TextEncoder().encode(JSON.stringify({
+                    action: 'delete',
+                    id: messageId
+                }));
+                livekitRoom.localParticipant.publishData(data, {
+                    reliable: true,
+                    topic: 'moderation'
+                });
                 const msgElement = document.getElementById(`chat-msg-${messageId}`);
                 if (msgElement) msgElement.remove();
                 const response = fetch(`${API_URL}/api/rooms/chat/${messageId}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' }
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    }
                 });
             } else if (broadcastType === 'mesh' && signalRConnection) {
                 signalRConnection.invoke('DeleteMessage', currentRoomId, messageId).catch(err => console.error(err));
@@ -553,29 +685,60 @@
             container.appendChild(reaction);
             setTimeout(() => reaction.remove(), 4000);
         }
-        function openPollModal() { pollModal.classList.remove('hidden'); pollModal.classList.add('flex'); }
-        function closePollModal() { pollModal.classList.add('hidden'); pollModal.classList.remove('flex'); }
+
+        function openPollModal() {
+            pollModal.classList.remove('hidden');
+            pollModal.classList.add('flex');
+        }
+
+        function closePollModal() {
+            pollModal.classList.add('hidden');
+            pollModal.classList.remove('flex');
+        }
+
         function addPollOption() {
             const container = document.getElementById('poll-options-container');
-            if (container.children.length >= 5) { alert("Maximum of 5 options allowed."); return; }
+            if (container.children.length >= 5) {
+                alert("Maximum of 5 options allowed.");
+                return;
+            }
             const newOption = document.createElement('div');
             newOption.innerHTML = `<label class="block text-sm font-medium text-gray-300 mb-1">Option ${container.children.length + 1}</label><input type="text" name="poll-option" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">`;
             container.appendChild(newOption);
         }
+
         function handleCreatePoll(e) {
             e.preventDefault();
             const question = document.getElementById('poll-question').value;
             const optionInputs = document.querySelectorAll('input[name="poll-option"]');
-            const options = Array.from(optionInputs).map((input, index) => ({ index: index, text: input.value, votes: 0 }));
-            if (options.some(opt => !opt.text)) { alert("All poll options must have text."); return; }
-            currentPoll = { id: `poll-${Date.now()}`, question: question, options: options };
-            const payload = { type: 'poll_start', poll: currentPoll };
+            const options = Array.from(optionInputs).map((input, index) => ({
+                index: index,
+                text: input.value,
+                votes: 0
+            }));
+            if (options.some(opt => !opt.text)) {
+                alert("All poll options must have text.");
+                return;
+            }
+            currentPoll = {
+                id: `poll-${Date.now()}`,
+                question: question,
+                options: options
+            };
+            const payload = {
+                type: 'poll_start',
+                poll: currentPoll
+            };
             const data = new TextEncoder().encode(JSON.stringify(payload));
-            livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'poll' });
+            livekitRoom.localParticipant.publishData(data, {
+                reliable: true,
+                topic: 'poll'
+            });
             displayPollResults();
             closePollModal();
             pollModalForm.reset();
         }
+
         function handlePollMessage(message) {
             if (!currentPoll || message.pollId !== currentPoll.id) return;
             if (message.type === 'poll_vote') {
@@ -583,17 +746,25 @@
                 if (option) {
                     option.votes += 1;
                     updatePollResults();
-                    const payload = { type: 'poll_update', results: currentPoll.options };
+                    const payload = {
+                        type: 'poll_update',
+                        results: currentPoll.options
+                    };
                     const data = new TextEncoder().encode(JSON.stringify(payload));
-                    livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'poll' });
+                    livekitRoom.localParticipant.publishData(data, {
+                        reliable: true,
+                        topic: 'poll'
+                    });
                 }
             }
         }
+
         function displayPollResults() {
             if (!currentPoll) return;
             pollResultsContainer.classList.remove('hidden');
             updatePollResults();
         }
+
         function updatePollResults() {
             const totalVotes = currentPoll.options.reduce((sum, opt) => sum + opt.votes, 0);
             let optionsHtml = currentPoll.options.map(option => {
@@ -609,16 +780,29 @@
             const confirmPassword = document.getElementById('register-confirm-password').value;
             const registerError = document.getElementById('register-error');
             registerError.textContent = '';
-            if (!username || !password) { registerError.textContent = 'Username and password are required.'; return; }
-            if (password !== confirmPassword) { registerError.textContent = 'Passwords do not match.'; return; }
+            if (!username || !password) {
+                registerError.textContent = 'Username and password are required.';
+                return;
+            }
+            if (password !== confirmPassword) {
+                registerError.textContent = 'Passwords do not match.';
+                return;
+            }
             try {
                 const response = await fetch(`${API_URL}/api/auth/register`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ Username: username, Password: password })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Username: username,
+                        Password: password
+                    })
                 });
                 const result = await response.json();
-                if (!response.ok) { throw new Error(result.message || 'Registration failed.'); }
+                if (!response.ok) {
+                    throw new Error(result.message || 'Registration failed.');
+                }
                 alert('Registration successful! Please log in.');
                 document.getElementById('register-username').value = '';
                 document.getElementById('register-password').value = '';

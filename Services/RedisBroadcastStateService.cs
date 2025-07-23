@@ -13,17 +13,19 @@ namespace gstream.Services
         private readonly IDatabase _db;
         private readonly IConnectionMultiplexer _redis;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly LiveKitService _liveKitService;   
         private const string BroadcastKeyPrefix = "gstream:broadcast:";
         private const string ConnectionKeyPrefix = "gstream:connection:";
         private const string ViewerCountKeyPrefix = "gstream:viewers:";
         private const string BroadcastTypeKeySuffix = ":type";
         private static readonly TimeSpan KeyExpiry = TimeSpan.FromDays(1);
 
-        public RedisBroadcastStateService(IConnectionMultiplexer redis, IServiceScopeFactory scopeFactory)
+        public RedisBroadcastStateService(IConnectionMultiplexer redis, IServiceScopeFactory scopeFactory, LiveKitService liveKitService)
         {
             _redis = redis;
             _db = redis.GetDatabase();
             _scopeFactory = scopeFactory;
+            _liveKitService = liveKitService;
         }
 
         private string GetBroadcastKey(string roomId) => $"{BroadcastKeyPrefix}{roomId}";
@@ -80,7 +82,7 @@ namespace gstream.Services
             var batch = _db.CreateBatch();
             batch.StringSetAsync(GetBroadcastKey(roomId), redisValue, KeyExpiry);
             batch.StringSetAsync(GetBroadcastTypeKey(roomId), broadcastType, KeyExpiry);
-            batch.StringSetAsync(GetViewerCountKey(roomId), 0, KeyExpiry);    
+            batch.StringSetAsync(GetViewerCountKey(roomId), 0, KeyExpiry);
             if (connectionId != null)
             {
                 batch.StringSetAsync(GetConnectionKey(connectionId), $"broadcaster:{roomId}", KeyExpiry);
@@ -90,6 +92,12 @@ namespace gstream.Services
 
         public async Task EndBroadcastAsync(string roomId, string broadcasterIdentity)
         {
+            var broadcastType = await GetBroadcastTypeAsync(roomId);
+            if (broadcastType == "sfu")
+            {
+                await _liveKitService.DeleteRoomAsync(roomId);
+            }
+
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
@@ -121,6 +129,15 @@ namespace gstream.Services
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             var activeRooms = await context.Rooms.Where(r => r.Status == RoomStatus.Broadcasting).ToListAsync();
+
+            foreach (var room in activeRooms)
+            {
+                var broadcastType = await GetBroadcastTypeAsync(room.Name);
+                if (broadcastType == "sfu")
+                {
+                    await _liveKitService.DeleteRoomAsync(room.Name);
+                }
+            }
             foreach (var room in activeRooms)
             {
                 room.Status = RoomStatus.Ended;

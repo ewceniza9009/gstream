@@ -40,9 +40,12 @@
         let myUsername;
 
         const iceServers = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+            iceServers: [{
+                urls: 'stun:stun.l.google.com:19302'
+            },
+            {
+                urls: 'stun:stun1.l.google.com:19302'
+            }
             ]
         };
 
@@ -81,17 +84,35 @@
             currentRoomId = roomIdInput.value;
             const apiKey = apiKeyInput.value;
             const username = usernameInput.value;
-            if (!currentRoomId || !apiKey || !username) { alert('Please enter a Display Name, API Key, and Room ID.'); return; }
+            if (!currentRoomId || !apiKey || !username) {
+                alert('Please enter a Display Name, API Key, and Room ID.');
+                return;
+            }
             switchToStreamingView();
             statusDiv.textContent = `Searching for broadcast in room: ${currentRoomId}...`;
             try {
-                const response = await fetch(`${API_URL}/api/broadcast/join/${currentRoomId}`, { method: 'POST', headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username }) });
-                if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || 'Could not find broadcast.'); }
+                const response = await fetch(`${API_URL}/api/broadcast/join/${currentRoomId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Api-Key': apiKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Could not find broadcast.');
+                }
                 const connectionDetails = await response.json();
                 broadcastType = connectionDetails.broadcastType;
                 myUsername = connectionDetails.username || username;
-                if (broadcastType === 'sfu') { await connectToSfuStream(connectionDetails); }
-                else { await connectToMeshStream(connectionDetails); }
+                if (broadcastType === 'sfu') {
+                    await connectToSfuStream(connectionDetails);
+                } else {
+                    await connectToMeshStream(connectionDetails);
+                }
                 await fetchAndRenderChatHistory(currentRoomId);
             } catch (error) {
                 console.error('Error joining stream:', error);
@@ -105,27 +126,51 @@
             if (signalRConnection) await signalRConnection.stop();
             window.location.reload();
         }
-        async function connectToSfuStream({ liveKitUrl, token }) {
+        async function connectToSfuStream({
+            liveKitUrl,
+            token
+        }) {
             statusDiv.textContent = 'SFU broadcast found! Connecting...';
             livekitRoom = new LivekitClient.Room();
             livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-                console.log('--- CONSUMER: LiveKit Data Received ---', { topic, from: participant.identity });
+                console.log('--- CONSUMER: LiveKit Data Received ---', {
+                    topic,
+                    from: participant.identity
+                });
                 try {
                     const message = JSON.parse(new TextDecoder().decode(payload));
-                    if (topic === 'chat') { displayChatMessage(message.id, message.username, message.content, message.username === myUsername); }
-                    else if (topic === 'moderation' && message.action === 'delete') { const msgElement = document.getElementById(`chat-msg-${message.id}`); if (msgElement) msgElement.remove(); }
-                    else if (topic === 'reaction') { showReaction(message.emoji); }
-                    else if (topic === 'poll') { handlePollMessage(message); }
-                } catch (e) { console.error("Failed to parse incoming data payload:", e); }
+                    if (topic === 'chat') {
+                        displayChatMessage(message.id, message.username, message.content, message.username === myUsername);
+                    } else if (topic === 'moderation' && message.action === 'delete') {
+                        const msgElement = document.getElementById(`chat-msg-${message.id}`);
+                        if (msgElement) msgElement.remove();
+                    } else if (topic === 'reaction') {
+                        showReaction(message.emoji);
+                    } else if (topic === 'poll') {
+                        handlePollMessage(message);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse incoming data payload:", e);
+                }
             });
             livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
                 const element = track.attach();
-                if (track.kind === 'video') { remoteVideo.srcObject = element.srcObject; }
-                else { document.body.appendChild(element); }
+                if (track.kind === 'video') {
+                    remoteVideo.srcObject = element.srcObject;
+                } else {
+                    document.body.appendChild(element);
+                }
             });
-            livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => { viewerCountNumber.textContent = livekitRoom.numParticipants; });
-            livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => { viewerCountNumber.textContent = livekitRoom.numParticipants; });
-            livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => { alert('The broadcast has ended.'); window.location.reload(); });
+            livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
+                viewerCountNumber.textContent = livekitRoom.numParticipants;
+            });
+            livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => {
+                viewerCountNumber.textContent = livekitRoom.numParticipants;
+            });
+            livekitRoom.on(LivekitClient.RoomEvent.Disconnected, () => {
+                alert('The broadcast has ended.');
+                window.location.reload();
+            });
             livekitRoom.on(LivekitClient.RoomEvent.ConnectionStateChanged, (state) => {
                 if (state === 'connected') {
                     statusDiv.textContent = 'Live stream connected!';
@@ -137,16 +182,50 @@
         }
         async function connectToMeshStream(details) {
             statusDiv.textContent = "Mesh broadcast found! Connecting...";
-            signalRConnection = (new signalR.HubConnectionBuilder).withUrl(API_URL + details.signalRHubUrl, { accessTokenFactory: () => details.token }).withAutomaticReconnect().build();
-            signalRConnection.on("ReceiveOfferFromBroadcaster", async (e, t) => { peerConnection = createPeerConnection(t), await peerConnection.setRemoteDescription(new RTCSessionDescription(e)); const n = await peerConnection.createAnswer(); await peerConnection.setLocalDescription(n), await signalRConnection.invoke("SendAnswerToBroadcaster", t, n) });
-            signalRConnection.on("ReceiveIceCandidate", async e => { peerConnection && await peerConnection.addIceCandidate(new RTCIceCandidate(e)) });
-            signalRConnection.on("BroadcastEnded", () => { alert("The broadcast has ended."), window.location.reload() });
-            signalRConnection.on("ReceiveChatMessage", (e, t, n) => { displayChatMessage(e, t, n, t === myUsername) });
-            signalRConnection.on("UpdateViewerCount", e => { viewerCountNumber.textContent = e });
-            signalRConnection.on("MessageDeleted", e => { const t = document.getElementById(`chat-msg-${e}`); t && t.remove() });
-            try { await signalRConnection.start(), await signalRConnection.invoke("ViewBroadcast", currentRoomId) } catch (e) { console.error("SignalR Connection Error: ", e), statusDiv.textContent = "Failed to connect to the streaming server." }
+            signalRConnection = (new signalR.HubConnectionBuilder).withUrl(API_URL + details.signalRHubUrl, {
+                accessTokenFactory: () => details.token
+            }).withAutomaticReconnect().build();
+            signalRConnection.on("ReceiveOfferFromBroadcaster", async (e, t) => {
+                peerConnection = createPeerConnection(t), await peerConnection.setRemoteDescription(new RTCSessionDescription(e));
+                const n = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(n), await signalRConnection.invoke("SendAnswerToBroadcaster", t, n)
+            });
+            signalRConnection.on("ReceiveIceCandidate", async e => {
+                peerConnection && await peerConnection.addIceCandidate(new RTCIceCandidate(e))
+            });
+            signalRConnection.on("BroadcastEnded", () => {
+                alert("The broadcast has ended."), window.location.reload()
+            });
+            signalRConnection.on("ReceiveChatMessage", (e, t, n) => {
+                displayChatMessage(e, t, n, t === myUsername)
+            });
+            signalRConnection.on("UpdateViewerCount", e => {
+                viewerCountNumber.textContent = e
+            });
+            signalRConnection.on("MessageDeleted", e => {
+                const t = document.getElementById(`chat-msg-${e}`);
+                t && t.remove()
+            });
+            try {
+                await signalRConnection.start(), await signalRConnection.invoke("ViewBroadcast", currentRoomId)
+            } catch (e) {
+                console.error("SignalR Connection Error: ", e), statusDiv.textContent = "Failed to connect to the streaming server."
+            }
         }
-        function createPeerConnection(broadcasterId) { const pc = new RTCPeerConnection(iceServers); pc.onicecandidate = e => { e.candidate && signalRConnection.invoke("SendIceCandidate", broadcasterId, e.candidate) }; pc.ontrack = e => { remoteVideo.srcObject = e.streams[0] }; pc.onconnectionstatechange = () => { "connected" === pc.connectionState && (statusDiv.textContent = "Live stream connected!") }; return pc }
+
+        function createPeerConnection(broadcasterId) {
+            const pc = new RTCPeerConnection(iceServers);
+            pc.onicecandidate = e => {
+                e.candidate && signalRConnection.invoke("SendIceCandidate", broadcasterId, e.candidate)
+            };
+            pc.ontrack = e => {
+                remoteVideo.srcObject = e.streams[0]
+            };
+            pc.onconnectionstatechange = () => {
+                "connected" === pc.connectionState && (statusDiv.textContent = "Live stream connected!")
+            };
+            return pc
+        }
 
         async function sendChatMessage() {
             const text = chatInput.value;
@@ -172,33 +251,50 @@
                             'X-Api-Key': apiKey,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ Content: text })
+                        body: JSON.stringify({
+                            Content: text
+                        })
                     });
                     if (!response.ok) throw new Error('Failed to save message via API');
 
                     const savedMessageDto = await response.json();
 
                     const data = new TextEncoder().encode(JSON.stringify(savedMessageDto));
-                    livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'chat' });
+                    livekitRoom.localParticipant.publishData(data, {
+                        reliable: true,
+                        topic: 'chat'
+                    });
 
                     displayChatMessage(savedMessageDto.id, savedMessageDto.username, savedMessageDto.content, true);
                 } catch (error) {
                     console.error("Failed to send chat message:", error);
-                    chatInput.value = text;                 
+                    chatInput.value = text;
                 }
             }
         }
         async function fetchAndRenderChatHistory(roomId) {
             const apiKey = apiKeyInput.value;
-            if (!apiKey) { console.error("API Key not found, cannot fetch chat history."); return; }
+            if (!apiKey) {
+                console.error("API Key not found, cannot fetch chat history.");
+                return;
+            }
             chatMessages.innerHTML = '';
             try {
-                const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, { headers: { 'X-Api-Key': apiKey } });
-                if (!response.ok) { throw new Error(`Failed to fetch chat history with status: ${response.status}`); }
+                const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, {
+                    headers: {
+                        'X-Api-Key': apiKey
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch chat history with status: ${response.status}`);
+                }
                 const history = await response.json();
                 history.forEach(msg => displayChatMessage(msg.id, msg.username, msg.content, msg.username === myUsername));
-            } catch (e) { console.error("Could not fetch chat history", e); }
+            } catch (e) {
+                console.error("Could not fetch chat history", e);
+            }
         }
+
         function displayChatMessage(id, user, message, isSelf) {
             const msgContainer = document.createElement('div');
             msgContainer.id = `chat-msg-${id}`;
@@ -217,10 +313,16 @@
             header.appendChild(usernameSpan);
             bubbleContainer.appendChild(header);
             bubbleContainer.appendChild(bubble);
-            if (isSelf) { msgContainer.appendChild(bubbleContainer); msgContainer.appendChild(avatar); }
-            else { msgContainer.appendChild(avatar); msgContainer.appendChild(bubbleContainer); }
+            if (isSelf) {
+                msgContainer.appendChild(bubbleContainer);
+                msgContainer.appendChild(avatar);
+            } else {
+                msgContainer.appendChild(avatar);
+                msgContainer.appendChild(bubbleContainer);
+            }
             chatMessages.insertBefore(msgContainer, chatMessages.firstChild);
         }
+
         function createAvatar(username) {
             const colors = ['bg-red-500', 'bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
             const charCodeSum = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -234,10 +336,17 @@
 
         function sendReaction(emoji) {
             if (!livekitRoom) return;
-            const payload = { type: 'reaction', emoji: emoji };
+            const payload = {
+                type: 'reaction',
+                emoji: emoji
+            };
             const data = new TextEncoder().encode(JSON.stringify(payload));
-            livekitRoom.localParticipant.publishData(data, { reliable: false, topic: 'reaction' });
+            livekitRoom.localParticipant.publishData(data, {
+                reliable: false,
+                topic: 'reaction'
+            });
         }
+
         function showReaction(emoji) {
             const reaction = document.createElement('span');
             reaction.className = 'reaction-emoji';
@@ -248,6 +357,7 @@
             videoReactionContainer.appendChild(reaction);
             setTimeout(() => reaction.remove(), 4000);
         }
+
         function handlePollMessage(message) {
             if (message.type === 'poll_start') {
                 displayPoll(message.poll);
@@ -255,6 +365,7 @@
                 updatePollResults(message.results);
             }
         }
+
         function displayPoll(poll) {
             let optionsHtml = poll.options.map(option => `
                 <button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">
@@ -275,11 +386,20 @@
                 </div>
             `;
         }
+
         function sendPollVote(pollId, optionIndex) {
-            const payload = { type: 'poll_vote', pollId, optionIndex };
+            const payload = {
+                type: 'poll_vote',
+                pollId,
+                optionIndex
+            };
             const data = new TextEncoder().encode(JSON.stringify(payload));
-            livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'poll' });
+            livekitRoom.localParticipant.publishData(data, {
+                reliable: true,
+                topic: 'poll'
+            });
         }
+
         function updatePollResults(results) {
             const totalVotes = results.reduce((sum, opt) => sum + opt.votes, 0);
             if (totalVotes === 0) return;
