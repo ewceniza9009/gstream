@@ -334,9 +334,11 @@
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble flex flex-col w-full max-w-xs p-2.5 rounded-lg' + (isSelf ? ' rounded-br-none bg-blue-700' : ' rounded-bl-none bg-gray-600');
             bubble.innerHTML = `<p class="text-sm font-normal text-white break-words">${message}</p>`;
+
             header.appendChild(usernameSpan);
             bubbleContainer.appendChild(header);
             bubbleContainer.appendChild(bubble);
+
             if (isSelf) {
                 msgContainer.appendChild(bubbleContainer);
                 msgContainer.appendChild(avatar);
@@ -344,7 +346,10 @@
                 msgContainer.appendChild(avatar);
                 msgContainer.appendChild(bubbleContainer);
             }
-            chatMessages.insertBefore(msgContainer, chatMessages.firstChild);
+
+            chatMessages.appendChild(msgContainer);
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         function createAvatar(username) {
@@ -393,25 +398,23 @@
         }
 
         function displayPoll(poll) {
-            let optionsHtml = poll.options.map(option => `
-                <button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">
-                    ${option.text}
-                </button>
-            `).join('');
+            let optionsHtml = poll.options.map(option => `<button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">${option.text}</button>`).join('');
+
             pollContainer.innerHTML = `
-                <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
-                    <div class="poll-header">
-                        <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
-                        <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
-                    </div>
-                    <div class="poll-body mt-3">
-                        <div class="space-y-2 poll-options">
-                            ${optionsHtml}
-                        </div>
-                    </div>
-                </div>
-            `;
+        <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
+            <div class="poll-header">
+                <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
+                <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div class="poll-body mt-3">
+                <div class="space-y-2 poll-options">
+                    ${optionsHtml}
+                </div>
+            </div>
+        </div>
+    `;
         }
+
 
         function sendPollVote(pollId, optionIndex) {
             const payload = {
@@ -429,10 +432,12 @@
         function updatePollResults(results) {
             const totalVotes = results.reduce((sum, opt) => sum + opt.votes, 0);
             if (totalVotes === 0) return;
+
             let resultsHtml = results.map(option => {
                 const percentage = ((option.votes / totalVotes) * 100).toFixed(1);
                 return `<div class="mb-2"><div class="flex justify-between items-center mb-1"><span class="text-sm font-medium text-gray-300">${option.text}</span><span class="text-sm font-bold text-white">${percentage}%</span></div><div class="w-full bg-gray-600 rounded-full h-2"><div class="bg-cyan-500 h-2 rounded-full poll-progress-bar" style="width: ${percentage}%"></div></div></div>`;
             }).join('');
+
             const pollOptionsDiv = pollContainer.querySelector('.poll-options');
             if (pollOptionsDiv) {
                 pollOptionsDiv.innerHTML = resultsHtml;

@@ -114,6 +114,7 @@
             <h1 class="text-5xl md:text-6xl font-bold text-cyan-400 flex items-center justify-center gap-4"><i class="fa-solid fa-satellite-dish"></i><span>GSTREAM</span></h1>
             <h2 class="text-lg text-gray-400 tracking-widest mt-2">BROADCAST DASHBOARD</h2>
         </div>
+
         <div id="dashboard-header" class="hidden w-full max-w-7xl mb-6">
             <div class="flex justify-between items-center">
                 <div>
@@ -127,50 +128,33 @@
                 </div>
             </div>
         </div>
+
         <div id="login-section" class="w-full max-w-md">
             <div class="bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl shadow-2xl shadow-cyan-500/10 ring-1 ring-white/10">
                 <div id="login-form">
                     <h2 class="text-2xl font-semibold mb-6 text-center text-white">Login to Broadcast</h2>
                     <div class="space-y-4">
-                        <div class="relative">
-                            <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="text" id="username" placeholder="Username" value="broadcaster1" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
-                        </div>
-                        <div class="relative">
-                            <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="password" id="password" placeholder="Password" value="password" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
-                        </div>
+                        <div class="relative"><i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="text" id="username" placeholder="Username" value="broadcaster1" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"></div>
+                        <div class="relative"><i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="password" id="password" placeholder="Password" value="password" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"></div>
                         <button id="login-button" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40">Login</button>
                     </div>
                     <p id="login-error" class="text-red-400 mt-4 text-center h-5"></p>
-                    <p class="text-center mt-4 text-sm text-gray-400">
-                        Don't have an account? <a href="#" id="show-register-link" class="font-medium text-cyan-400 hover:underline">Register</a>
-                    </p>
+                    <p class="text-center mt-4 text-sm text-gray-400">Don't have an account? <a href="#" id="show-register-link" class="font-medium text-cyan-400 hover:underline">Register</a></p>
                 </div>
                 <div id="register-form" class="hidden">
                     <h2 class="text-2xl font-semibold mb-6 text-center">Create Account</h2>
                     <div class="space-y-4">
-                        <div class="relative">
-                            <i class="fa-solid fa-user-plus absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="text" id="register-username" placeholder="Username" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
-                        </div>
-                        <div class="relative">
-                            <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="password" id="register-password" placeholder="Password" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
-                        </div>
-                        <div class="relative">
-                            <i class="fa-solid fa-check-double absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="password" id="register-confirm-password" placeholder="Confirm Password" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
-                        </div>
+                        <div class="relative"><i class="fa-solid fa-user-plus absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="text" id="register-username" placeholder="Username" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"></div>
+                        <div class="relative"><i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="password" id="register-password" placeholder="Password" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"></div>
+                        <div class="relative"><i class="fa-solid fa-check-double absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="password" id="register-confirm-password" placeholder="Confirm Password" class="w-full bg-gray-800/50 text-white pl-10 p-3 rounded-lg border-0 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"></div>
                         <button id="register-button" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300">Register</button>
                     </div>
                     <p id="register-error" class="text-red-400 mt-4 text-center h-5"></p>
-                    <p class="text-center mt-4 text-sm text-gray-400">
-                        Already have an account? <a href="#" id="show-login-link" class="font-medium text-cyan-400 hover:underline">Login</a>
-                    </p>
+                    <p class="text-center mt-4 text-sm text-gray-400">Already have an account? <a href="#" id="show-login-link" class="font-medium text-cyan-400 hover:underline">Login</a></p>
                 </div>
             </div>
         </div>
+
         <div id="broadcast-dashboard" class="hidden w-full max-w-7xl">
             <div id="room-selection-section">
                 <h3 class="text-2xl font-semibold mb-4">Select a Room to Broadcast</h3>
@@ -182,26 +166,46 @@
                     <div id="room-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
                 </div>
             </div>
-            <div id="configure-section" class="hidden bg-gray-800 p-8 rounded-2xl shadow-xl max-w-7xl mx-auto mt-8 ring-1 ring-white/10">
+
+            <div id="configure-section" class="hidden bg-gray-800 p-8 rounded-2xl shadow-xl max-w-4xl mx-auto mt-8 ring-1 ring-white/10">
                 <button id="back-to-rooms-btn" class="mb-6 text-cyan-400 hover:underline"><i class="fas fa-arrow-left mr-2"></i>Back to Room Selection</button>
                 <h3 class="text-2xl font-semibold mb-6 text-center">Configure Stream for <span id="selected-room-name" class="text-cyan-400"></span></h3>
                 <input type="hidden" id="room-id">
-                <div class="mb-6">
-                    <label class="block text-gray-300 mb-2 font-medium">Broadcast Type:</label>
-                    <div class="flex items-center space-x-6">
-                        <label class="flex items-center cursor-pointer"><input type="radio" name="broadcastType" value="sfu" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">SFU (for many viewers)</span></label>
-                        <label class="flex items-center cursor-pointer"><input type="radio" name="broadcastType" value="mesh" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">Mesh (for 1-2 viewers)</span></label>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div>
+                        <label class="block text-gray-300 mb-2 font-medium">Broadcast Type:</label>
+                        <div class="flex items-center space-x-6">
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="broadcastType" value="sfu" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">SFU (Recommended)</span></label>
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="broadcastType" value="mesh" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">Mesh (1-2 viewers)</span></label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-300 mb-2 font-medium">Video Source:</label>
+                        <div class="flex items-center space-x-6">
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="videoSource" value="system" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">System Camera</span></label>
+                            <label class="flex items-center cursor-pointer"><input type="radio" name="videoSource" value="ip" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">IP Camera</span></label>
+                        </div>
+                    </div>
+
+                    <div id="system-camera-section" class="md:col-span-2">
+                        <label for="camera-select" class="block text-gray-300 mb-2 font-medium">Select Camera:</label>
+                        <div class="flex items-center gap-2">
+                            <select id="camera-select" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"></select>
+                            <button id="refresh-cameras-btn" title="Refresh Camera List" class="bg-gray-600 hover:bg-gray-500 text-white font-bold p-3 rounded-md transition-colors"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="ip-camera-section" class="hidden md:col-span-2">
+                        <label for="ip-camera-url" class="block text-gray-300 mb-2 font-medium">IP Camera Stream URL:</label>
+                        <input type="text" id="ip-camera-url" placeholder="e.g., http://192.168.1.10/video.mjpg" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                     </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-gray-300 mb-2 font-medium">Camera Source:</label>
-                    <div class="flex items-center space-x-6">
-                        <label class="flex items-center cursor-pointer"><input type="radio" name="cameraSource" value="local" checked class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">Local Webcam</span></label>
-                        <label class="flex items-center cursor-pointer"><input type="radio" name="cameraSource" value="ip" class="form-radio h-5 w-5 text-cyan-600 bg-gray-700 border-gray-600 focus:ring-cyan-500"><span class="ml-2 text-white">IP Camera</span></label>
-                    </div>
+
+                <div class="flex flex-col gap-4 mt-8">
+                    <button id="start-broadcast-button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300">Start Broadcast</button>
                 </div>
-                <div id="ip-camera-section" class="hidden my-4"><input type="text" id="ip-camera-url" placeholder="Enter IP Cam Stream URL" class="w-full bg-gray-700 text-white p-3 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"></div>
-                <div class="flex flex-col gap-4 mt-8"><button id="start-broadcast-button" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300">Start Broadcast</button></div>
             </div>
         </div>
 
@@ -253,14 +257,8 @@
                         <input type="text" id="poll-question" required maxlength="200" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
                     </div>
                     <div id="poll-options-container">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">Option 1</label>
-                            <input type="text" name="poll-option" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">Option 2</label>
-                            <input type="text" name="poll-option" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">
-                        </div>
+                        <div><label class="block text-sm font-medium text-gray-300 mb-1">Option 1</label><input type="text" name="poll-option" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600"></div>
+                        <div><label class="block text-sm font-medium text-gray-300 mb-1">Option 2</label><input type="text" name="poll-option" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600"></div>
                     </div>
                     <button type="button" id="add-poll-option-btn" class="text-sm text-cyan-400 hover:underline">Add another option</button>
                 </div>

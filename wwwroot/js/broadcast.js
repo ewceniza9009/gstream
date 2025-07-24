@@ -25,9 +25,6 @@
         const roomSearchInput = document.getElementById('room-search-input');
         const roomList = document.getElementById('room-list');
         const backToRoomsBtn = document.getElementById('back-to-rooms-btn');
-        const cameraSourceRadios = document.querySelectorAll('input[name="cameraSource"]');
-        const ipCameraSection = document.getElementById('ip-camera-section');
-        const ipCameraUrlInput = document.getElementById('ip-camera-url');
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
         const loginHeader = document.getElementById('login-header');
@@ -35,6 +32,13 @@
         const showRegisterLink = document.getElementById('show-register-link');
         const showLoginLink = document.getElementById('show-login-link');
         const streamingSection = document.getElementById('streaming-section');
+
+        const videoSourceRadios = document.querySelectorAll('input[name="videoSource"]');
+        const systemCameraSection = document.getElementById('system-camera-section');
+        const ipCameraSection = document.getElementById('ip-camera-section');
+        const ipCameraUrlInput = document.getElementById('ip-camera-url');
+        const cameraSelect = document.getElementById('camera-select');
+        const refreshCamerasBtn = document.getElementById('refresh-cameras-btn');
 
         let localVideoContainer, screenShareContainer, chatSection, localVideo, screenShareVideo, statusDiv,
             viewerCountNumber, recordBtn, leaveBtn, startScreenShareBtn, stopScreenShareBtn, createPollBtn, pollModal, pollModalForm,
@@ -58,41 +62,32 @@
         let streamingEventListenersInitialized = false;
 
         const iceServers = {
-            iceServers: [{
-                urls: 'stun:stun.l.google.com:19302'
-            },
-            {
-                urls: 'stun:stun1.l.google.com:19302'
-            }
-            ]
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
         };
 
         initializeApplicationState();
+        addEventListeners();
 
-        loginButton.addEventListener('click', handleLogin);
-        registerButton.addEventListener('click', handleRegister);
-        logoutButton.addEventListener('click', handleLogout);
-        startBroadcastBtn.addEventListener('click', startBroadcast);
-        roomSearchInput.addEventListener('input', handleSearch);
-        backToRoomsBtn.addEventListener('click', showRoomSelection);
+        function addEventListeners() {
+            loginButton.addEventListener('click', handleLogin);
+            registerButton.addEventListener('click', handleRegister);
+            logoutButton.addEventListener('click', handleLogout);
+            startBroadcastBtn.addEventListener('click', startBroadcast);
+            roomSearchInput.addEventListener('input', handleSearch);
+            backToRoomsBtn.addEventListener('click', showRoomSelection);
+            refreshCamerasBtn.addEventListener('click', getAndPopulateCameras);
 
-        cameraSourceRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                ipCameraSection.classList.toggle('hidden', document.querySelector('input[name="cameraSource"]:checked').value !== 'ip');
+            videoSourceRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const isSystemCamera = document.querySelector('input[name="videoSource"]:checked').value === 'system';
+                    systemCameraSection.classList.toggle('hidden', !isSystemCamera);
+                    ipCameraSection.classList.toggle('hidden', isSystemCamera);
+                });
             });
-        });
 
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginForm.classList.add('hidden');
-            registerForm.classList.remove('hidden');
-        });
-
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-        });
+            showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); loginForm.classList.add('hidden'); registerForm.classList.remove('hidden'); });
+            showLoginLink.addEventListener('click', (e) => { e.preventDefault(); registerForm.classList.add('hidden'); loginForm.classList.remove('hidden'); });
+        }
 
         function initializeStreamingEventListeners() {
             if (streamingEventListenersInitialized) return;
@@ -126,42 +121,14 @@
             pollModalForm.addEventListener('submit', handleCreatePoll);
             addPollOptionBtn.addEventListener('click', addPollOption);
             chatSendButton.addEventListener('click', sendChatMessage);
-            chatInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') sendChatMessage();
-            });
-            recordBtn.addEventListener('click', async () => {
-                if (!currentRoomId) {
-                    alert("You must start a broadcast before you can record.");
-                    return;
-                }
-                if (!confirm("Are you sure you want to start recording this broadcast?")) return;
-                try {
-                    const response = await fetch(`${API_URL}/api/broadcast/record/start/${currentRoomId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${jwtToken}`
-                        }
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.message || 'Failed to start recording.');
-                    alert(result.message);
-                    recordBtn.disabled = true;
-                    recordBtn.textContent = 'Recording...';
-                } catch (error) {
-                    console.error('Recording error:', error);
-                    alert(`Could not start recording: ${error.message}`);
-                }
-            });
+            chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+            recordBtn.addEventListener('click', handleRecording);
 
             streamingEventListenersInitialized = true;
         }
 
         function parseJwt(token) {
-            try {
-                return JSON.parse(atob(token.split('.')[1]));
-            } catch (e) {
-                return null;
-            }
+            try { return JSON.parse(atob(token.split('.')[1])); } catch (e) { return null; }
         }
 
         function updateNav() {
@@ -179,13 +146,8 @@
             try {
                 const response = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        Username: username,
-                        Password: password
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Username: username, Password: password })
                 });
                 if (!response.ok) throw new Error((await response.json()).message || 'Invalid credentials');
                 const data = await response.json();
@@ -194,20 +156,45 @@
                 localStorage.setItem('jwtToken', jwtToken);
                 localStorage.setItem('myUsername', myUsername);
                 document.getElementById('password').value = '';
-                loginHeader.classList.add('hidden');
-                loginSection.classList.add('hidden');
-                dashboardHeader.classList.remove('hidden');
-                const decodedToken = parseJwt(jwtToken);
-                if (decodedToken && decodedToken.role === 'Consumer') {
-                    broadcastDashboard.innerHTML = `<div class="text-center p-8 bg-gray-800 rounded-lg"><h3 class="text-2xl font-semibold text-yellow-400">Access Denied</h3><p class="text-gray-300 mt-2">Your account does not have permission to broadcast.</p></div>`;
-                    broadcastDashboard.classList.remove('hidden');
-                } else {
-                    broadcastDashboard.classList.remove('hidden');
-                    await fetchAndRenderRooms();
-                }
-                updateNav();
+
+                showDashboard();
             } catch (error) {
                 loginError.textContent = `Login failed: ${error.message}`;
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            const registerError = document.getElementById('register-error');
+            registerError.textContent = '';
+
+            if (!username || !password) {
+                registerError.textContent = 'Username and password are required.';
+                return;
+            }
+            if (password !== confirmPassword) {
+                registerError.textContent = 'Passwords do not match.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Username: username, Password: password })
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Registration failed.');
+                }
+                alert('Registration successful! Please log in.');
+                document.getElementById('register-form').reset();
+                showLoginLink.click();
+            } catch (error) {
+                registerError.textContent = error.message;
+                console.error('Registration failed:', error);
             }
         }
 
@@ -215,18 +202,7 @@
             jwtToken = localStorage.getItem('jwtToken');
             myUsername = localStorage.getItem('myUsername');
             if (jwtToken && myUsername) {
-                loginHeader.classList.add('hidden');
-                loginSection.classList.add('hidden');
-                dashboardHeader.classList.remove('hidden');
-                const decodedToken = parseJwt(jwtToken);
-                if (decodedToken && decodedToken.role === 'Consumer') {
-                    broadcastDashboard.innerHTML = `<div class="text-center p-8 bg-gray-800 rounded-lg"><h3 class="text-2xl font-semibold text-yellow-400">Access Denied</h3><p class="text-gray-300 mt-2">Your account does not have permission to broadcast.</p></div>`;
-                    broadcastDashboard.classList.remove('hidden');
-                } else {
-                    broadcastDashboard.classList.remove('hidden');
-                    fetchAndRenderRooms();
-                }
-                updateNav();
+                showDashboard();
             }
         }
 
@@ -243,6 +219,21 @@
             loginSection.classList.remove('hidden');
         }
 
+        function showDashboard() {
+            loginHeader.classList.add('hidden');
+            loginSection.classList.add('hidden');
+            dashboardHeader.classList.remove('hidden');
+            const decodedToken = parseJwt(jwtToken);
+            if (decodedToken && decodedToken.role === 'Consumer') {
+                broadcastDashboard.innerHTML = `<div class="text-center p-8 bg-gray-800 rounded-lg"><h3 class="text-2xl font-semibold text-yellow-400">Access Denied</h3><p class="text-gray-300 mt-2">Your account does not have permission to broadcast.</p></div>`;
+                broadcastDashboard.classList.remove('hidden');
+            } else {
+                broadcastDashboard.classList.remove('hidden');
+                fetchAndRenderRooms();
+            }
+            updateNav();
+        }
+
         function showRoomSelection() {
             configureSection.classList.add('hidden');
             roomSelectionSection.classList.remove('hidden');
@@ -254,15 +245,22 @@
             configureSection.classList.remove('hidden');
             document.getElementById('selected-room-name').textContent = roomName;
             document.getElementById('room-id').value = roomName;
+            getAndPopulateCameras();
+        }
+
+        function switchToStreamingView() {
+            broadcastDashboard.classList.add('hidden');
+            initializeStreamingEventListeners();
+            streamingSection.classList.remove('hidden');
+            chatSection.classList.remove('hidden');
+            localVideoContainer.classList.remove('hidden');
         }
 
         async function fetchAndRenderRooms() {
             roomList.innerHTML = '<p class="text-gray-400 col-span-full text-center">Loading rooms...</p>';
             try {
                 const response = await fetch(`${API_URL}/api/rooms`, {
-                    headers: {
-                        'Authorization': `Bearer ${jwtToken}`
-                    }
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
                 });
                 if (!response.ok) throw new Error('Failed to fetch rooms.');
                 allRooms = await response.json();
@@ -279,11 +277,7 @@
                 return;
             }
             rooms.forEach(room => {
-                const statusColors = {
-                    'Broadcasting': 'bg-red-500',
-                    'Open': 'bg-green-500',
-                    'Ended': 'bg-gray-500'
-                };
+                const statusColors = { 'Broadcasting': 'bg-red-500', 'Open': 'bg-green-500', 'Ended': 'bg-gray-500' };
                 const card = document.createElement('div');
                 card.className = 'bg-gray-700 rounded-lg p-4 flex flex-col justify-between shadow-md';
                 card.innerHTML = `<div><div class="flex justify-between items-start"><h4 class="text-lg font-bold text-white break-all pr-2">${room.name}</h4><span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${statusColors[room.status] || 'bg-yellow-500'} text-white whitespace-nowrap">${room.status}</span></div><p class="text-sm text-gray-400 mt-1">${room.broadcasterUsername ? `Broadcaster: ${room.broadcasterUsername}` : 'Ready to stream'}</p></div><div class="flex justify-end gap-2 mt-4"><button data-room-name="${room.name}" class="use-room-btn bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-1 px-3 rounded text-sm" ${room.status === 'Broadcasting' ? 'disabled' : ''}>${room.status === 'Broadcasting' ? 'In Use' : 'Use'}</button></div>`;
@@ -298,18 +292,79 @@
             renderRoomList(filteredRooms);
         }
 
+        async function getAndPopulateCameras() {
+            cameraSelect.innerHTML = '<option>Checking for cameras...</option>';
+            try {
+                await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+                cameraSelect.innerHTML = '';
+                if (videoDevices.length === 0) {
+                    cameraSelect.innerHTML = '<option value="">No cameras found</option>';
+                    return;
+                }
+
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error enumerating devices:", error);
+                cameraSelect.innerHTML = '<option value="">Camera access denied</option>';
+                alert("Camera and microphone access is required to select a device. Please allow access and click Refresh.");
+            }
+        }
+
+        async function getCameraStream() {
+            const selectedSource = document.querySelector('input[name="videoSource"]:checked').value;
+
+            if (selectedSource === 'system') {
+                const deviceId = cameraSelect.value;
+                if (!deviceId) {
+                    throw new Error('No camera selected or available. Please check permissions and refresh the list.');
+                }
+                return await navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: { exact: deviceId } },
+                    audio: true                         
+                });
+            } else {     
+                const url = ipCameraUrlInput.value;
+                if (!url) throw new Error('Please enter the IP Camera stream URL.');
+
+                return new Promise((resolve, reject) => {
+                    const ipVideoElement = document.createElement('video');
+                    ipVideoElement.crossOrigin = 'anonymous';
+                    ipVideoElement.src = url;
+                    ipVideoElement.addEventListener('loadeddata', () => {
+                        ipVideoElement.play().then(() => {
+                            const stream = ipVideoElement.captureStream ? ipVideoElement.captureStream() : ipVideoElement.mozCaptureStream ? ipVideoElement.mozCaptureStream() : null;
+                            if (stream) resolve(stream);
+                            else reject(new Error('captureStream API is not supported by your browser.'));
+                        }).catch(e => reject(new Error(`Could not play the IP Camera stream. Error: ${e.message}`)));
+                    });
+                    ipVideoElement.addEventListener('error', () => reject(new Error('Could not load the IP Camera stream. Check the URL and CORS policy.')));
+                });
+            }
+        }
+
         async function startBroadcast() {
             userRole = 'broadcaster';
             currentRoomId = document.getElementById('room-id').value;
             broadcastType = document.querySelector('input[name="broadcastType"]:checked').value;
+
             if (!currentRoomId) {
                 alert('Please select a room first.');
                 return;
             }
+
             try {
                 localStream = await getCameraStream();
                 switchToStreamingView();
                 localVideo.srcObject = localStream;
+
                 if (broadcastType === 'sfu') {
                     await startSfuBroadcast();
                 } else {
@@ -317,7 +372,8 @@
                 }
                 await fetchAndRenderRooms();
             } catch (error) {
-                alert(error.message || 'Could not start broadcast.');
+                alert(`Error: ${error.message}` || 'Could not start broadcast.');
+                console.error(error);
                 handleLeave();
             }
         }
@@ -335,54 +391,26 @@
             try {
                 const response = await fetch(`${API_URL}/api/broadcast/start/sfu/${currentRoomId}`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${jwtToken}`
-                    }
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
                 });
                 if (!response.ok) throw new Error((await response.json()).message || 'Failed to initialize SFU broadcast.');
-                const {
-                    liveKitUrl,
-                    token,
-                    username
-                } = await response.json();
+                const { liveKitUrl, token, username } = await response.json();
                 myUsername = username;
+
                 livekitRoom = new LivekitClient.Room();
-                livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-                    console.log('--- BROADCASTER: LiveKit Data Received ---', {
-                        topic,
-                        from: participant.identity
-                    });
-                    try {
-                        const message = JSON.parse(new TextDecoder().decode(payload));
-                        if (topic === 'chat') {
-                            displayChatMessage(message.id, message.username, message.content, message.username === myUsername);
-                        } else if (topic === 'moderation' && message.action === 'delete') {
-                            const msgElement = document.getElementById(`chat-msg-${message.id}`);
-                            if (msgElement) msgElement.remove();
-                        } else if (topic === 'reaction') {
-                            showReaction(message.emoji);
-                        } else if (topic === 'poll') {
-                            handlePollMessage(message);
-                        }
-                    } catch (e) {
-                        console.error("Failed to parse incoming data payload:", e);
-                    }
-                });
+                setupLiveKitListeners();
+
                 await livekitRoom.connect(liveKitUrl, token);
                 console.log('--- BROADCASTER: Connected to LiveKit Room ---');
                 statusDiv.textContent = `Broadcasting to room: ${currentRoomId} (SFU)`;
+
                 if (localStream.getVideoTracks().length > 0) {
-                    webcamPublication = await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0], {
-                        name: 'camera'
-                    });
+                    webcamPublication = await livekitRoom.localParticipant.publishTrack(localStream.getVideoTracks()[0], { name: 'camera' });
                 }
-                if (localStream.getAudioTracks().length > 0) await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
-                livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
-                    viewerCountNumber.textContent = livekitRoom.numParticipants;
-                });
-                livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => {
-                    viewerCountNumber.textContent = livekitRoom.numParticipants;
-                });
+                if (localStream.getAudioTracks().length > 0) {
+                    await livekitRoom.localParticipant.publishTrack(localStream.getAudioTracks()[0]);
+                }
+
                 fetchAndRenderChatHistory(currentRoomId);
             } catch (error) {
                 console.error('SFU broadcast failed:', error);
@@ -390,9 +418,68 @@
             }
         }
 
+        async function initializeSignalR() {
+            signalRConnection = new signalR.HubConnectionBuilder().withUrl(`${API_URL}/broadcasthub?access_token=${jwtToken}`).withAutomaticReconnect().build();
+            signalRConnection.on('NewViewer', async (viewerId) => {
+                const pc = createPeerConnection(viewerId);
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                await signalRConnection.invoke('SendOfferToViewer', viewerId, offer);
+            });
+            signalRConnection.on('ReceiveAnswerFromViewer', async (answer, viewerId) => {
+                await peerConnections[viewerId]?.setRemoteDescription(new RTCSessionDescription(answer));
+            });
+            signalRConnection.on('ReceiveChatMessage', (messageId, user, message) => displayChatMessage(messageId, user, message, user === myUsername));
+            signalRConnection.on('ViewerLeft', (viewerId) => { peerConnections[viewerId]?.close(); delete peerConnections[viewerId]; });
+            signalRConnection.on('BroadcastEnded', () => { alert('The broadcast has ended.'); handleLeave(); });
+            signalRConnection.on('UpdateViewerCount', (count) => { viewerCountNumber.textContent = count; });
+            signalRConnection.on('MessageDeleted', (messageId) => { const msgElement = document.getElementById(`chat-msg-${messageId}`); if (msgElement) msgElement.remove(); });
+
+            try {
+                await signalRConnection.start();
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function setupLiveKitListeners() {
+            livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+                console.log('--- BROADCASTER: LiveKit Data Received ---', { topic, from: participant.identity });
+                try {
+                    const message = JSON.parse(new TextDecoder().decode(payload));
+                    if (topic === 'chat') {
+                        displayChatMessage(message.id, message.username, message.content, message.username === myUsername);
+                    } else if (topic === 'moderation' && message.action === 'delete') {
+                        const msgElement = document.getElementById(`chat-msg-${message.id}`);
+                        if (msgElement) msgElement.remove();
+                    } else if (topic === 'reaction') {
+                        showReaction(message.emoji);
+                    } else if (topic === 'poll') {
+                        handlePollMessage(message);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse incoming data payload:", e);
+                }
+            });
+
+            livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => { viewerCountNumber.textContent = livekitRoom.numParticipants; });
+            livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => { viewerCountNumber.textContent = livekitRoom.numParticipants; });
+        }
+
+        function createPeerConnection(peerId) {
+            const pc = new RTCPeerConnection(iceServers);
+            peerConnections[peerId] = pc;
+            pc.onicecandidate = event => {
+                if (event.candidate) signalRConnection.invoke('SendIceCandidate', peerId, event.candidate);
+            };
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            return pc;
+        }
+
         async function handleLeave() {
             if (livekitRoom || signalRConnection) {
-                await handleScreenShare(false);
+                await handleScreenShare(false);                 
                 if (livekitRoom) {
                     await livekitRoom.disconnect();
                     livekitRoom = null;
@@ -412,9 +499,7 @@
                 try {
                     await fetch(`${API_URL}/api/broadcast/end/sfu/${currentRoomId}`, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${jwtToken}`
-                        }
+                        headers: { 'Authorization': `Bearer ${jwtToken}` }
                     });
                 } catch (error) {
                     console.error('Error sending end signal:', error);
@@ -429,19 +514,16 @@
         async function handleScreenShare(enabled) {
             if (enabled) {
                 try {
-                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({
-                        video: true
-                    });
+                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                     const screenTrack = screenShareStream.getVideoTracks()[0];
                     screenShareVideo.srcObject = screenShareStream;
                     screenShareContainer.classList.remove('hidden');
-                    screenSharePublication = await livekitRoom.localParticipant.publishTrack(screenTrack, {
-                        name: 'screen', 
-                        simulcast: true
-                    });
+
+                    screenSharePublication = await livekitRoom.localParticipant.publishTrack(screenTrack, { name: 'screen', simulcast: true });
                     if (webcamPublication) {
                         await livekitRoom.localParticipant.unpublishTrack(webcamPublication.trackSid);
                     }
+
                     screenTrack.onended = () => handleScreenShare(false);
                     startScreenShareBtn.classList.add('hidden');
                     stopScreenShareBtn.classList.remove('hidden');
@@ -457,6 +539,7 @@
                 if (screenShareStream) {
                     screenShareStream.getTracks().forEach(track => track.stop());
                 }
+
                 if (webcamPublication && livekitRoom && !livekitRoom.localParticipant.getTrackPublication(webcamPublication.source)) {
                     await livekitRoom.localParticipant.publishTrack(webcamPublication.track, {
                         name: 'camera',
@@ -474,90 +557,30 @@
             }
         }
 
-        async function initializeSignalR() {
-            signalRConnection = new signalR.HubConnectionBuilder().withUrl(`${API_URL}/broadcasthub?access_token=${jwtToken}`).withAutomaticReconnect().build();
-            signalRConnection.on('NewViewer', async (viewerId) => {
-                const pc = createPeerConnection(viewerId);
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                await signalRConnection.invoke('SendOfferToViewer', viewerId, offer);
-            });
-            signalRConnection.on('ReceiveAnswerFromViewer', async (answer, viewerId) => {
-                await peerConnections[viewerId]?.setRemoteDescription(new RTCSessionDescription(answer));
-            });
-            signalRConnection.on('ReceiveChatMessage', (messageId, user, message) => displayChatMessage(messageId, user, message, user === myUsername));
-            signalRConnection.on('ViewerLeft', (viewerId) => {
-                peerConnections[viewerId]?.close();
-                delete peerConnections[viewerId];
-            });
-            signalRConnection.on('BroadcastEnded', () => {
-                alert('The broadcast has ended.');
-                handleLeave();
-            });
-            signalRConnection.on('UpdateViewerCount', (count) => {
-                viewerCountNumber.textContent = count;
-            });
-            signalRConnection.on('MessageDeleted', (messageId) => {
-                const msgElement = document.getElementById(`chat-msg-${messageId}`);
-                if (msgElement) msgElement.remove();
-            });
+        async function handleRecording() {
+            if (!currentRoomId) { alert("You must start a broadcast before you can record."); return; }
+            if (!confirm("Are you sure you want to start recording this broadcast?")) return;
             try {
-                await signalRConnection.start();
-                return true;
+                const response = await fetch(`${API_URL}/api/broadcast/record/start/${currentRoomId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Failed to start recording.');
+                alert(result.message);
+                recordBtn.disabled = true;
+                recordBtn.textContent = 'Recording...';
             } catch (error) {
-                return false;
+                console.error('Recording error:', error);
+                alert(`Could not start recording: ${error.message}`);
             }
         }
 
-        function createPeerConnection(peerId) {
-            const pc = new RTCPeerConnection(iceServers);
-            peerConnections[peerId] = pc;
-            pc.onicecandidate = event => {
-                if (event.candidate) signalRConnection.invoke('SendIceCandidate', peerId, event.candidate);
-            };
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            return pc;
-        }
-        async function getCameraStream() {
-            const selectedSource = document.querySelector('input[name="cameraSource"]:checked').value;
-            if (selectedSource === 'local') {
-                return await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true
-                });
-            } else {
-                const url = ipCameraUrlInput.value;
-                if (!url) throw new Error('Please enter the IP Camera stream URL.');
-                return new Promise((resolve, reject) => {
-                    const ipVideoElement = document.createElement('video');
-                    ipVideoElement.crossOrigin = 'anonymous';
-                    ipVideoElement.src = url;
-                    ipVideoElement.addEventListener('loadeddata', () => {
-                        ipVideoElement.play().then(() => {
-                            const stream = ipVideoElement.captureStream ? ipVideoElement.captureStream() : null;
-                            if (stream) resolve(stream);
-                            else reject(new Error('captureStream API is not supported by your browser.'));
-                        }).catch(e => reject(new Error(`Could not play the IP Camera stream.`)));
-                    });
-                    ipVideoElement.addEventListener('error', () => reject(new Error('Could not load the IP Camera stream.')));
-                });
-            }
-        }
-
-        function switchToStreamingView() {
-            document.getElementById('broadcast-dashboard').classList.add('hidden');
-            initializeStreamingEventListeners();
-            streamingSection.classList.remove('hidden');
-            chatSection.classList.remove('hidden');
-            localVideoContainer.classList.remove('hidden');
-        }
         async function fetchAndRenderChatHistory(roomId) {
             chatMessages.innerHTML = '';
             try {
                 const response = await fetch(`${API_URL}/api/rooms/${roomId}/chat`, {
-                    headers: {
-                        'Authorization': `Bearer ${jwtToken}`
-                    }
+                    headers: { 'Authorization': `Bearer ${jwtToken}` }
                 });
                 if (!response.ok) return;
                 const history = await response.json();
@@ -566,47 +589,35 @@
                 console.error("Could not fetch chat history", e);
             }
         }
+
         async function sendChatMessage() {
             const text = chatInput.value;
             if (!text) return;
             chatInput.value = '';
+
             if (broadcastType === 'mesh' && signalRConnection) {
                 signalRConnection.invoke('SendChatMessage', currentRoomId, text);
                 return;
             }
+
             if (broadcastType === 'sfu' && livekitRoom) {
-                let payload = {
-                    id: Date.now(),
-                    username: myUsername,
-                    content: text,
-                    timestamp: new Date().toISOString()
-                };
-                if (jwtToken) {
-                    try {
-                        const response = await fetch(`${API_URL}/api/rooms/${currentRoomId}/chat`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${jwtToken}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                Content: text
-                            })
-                        });
-                        if (response.ok) {
-                            payload = await response.json();
-                        } else {
-                            console.warn('Could not save chat message to history.');
-                        }
-                    } catch (error) {
-                        console.error("API call to save chat message failed:", error);
+                let payload = { id: Date.now(), username: myUsername, content: text, timestamp: new Date().toISOString() };
+                try {
+                    const response = await fetch(`${API_URL}/api/rooms/${currentRoomId}/chat`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ Content: text })
+                    });
+                    if (response.ok) {
+                        payload = await response.json();                         
+                    } else {
+                        console.warn('Could not save chat message to history.');
                     }
+                } catch (error) {
+                    console.error("API call to save chat message failed:", error);
                 }
                 const data = new TextEncoder().encode(JSON.stringify(payload));
-                livekitRoom.localParticipant.publishData(data, {
-                    reliable: true,
-                    topic: 'chat'
-                });
+                livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'chat' });
                 displayChatMessage(payload.id, payload.username, payload.content, true);
             }
         }
@@ -662,23 +673,11 @@
         function handleDeleteMessage(messageId) {
             if (!confirm("Are you sure you want to delete this message?")) return;
             if (broadcastType === 'sfu' && livekitRoom) {
-                const data = new TextEncoder().encode(JSON.stringify({
-                    action: 'delete',
-                    id: messageId
-                }));
-                livekitRoom.localParticipant.publishData(data, {
-                    reliable: true,
-                    topic: 'moderation'
-                });
+                const data = new TextEncoder().encode(JSON.stringify({ action: 'delete', id: messageId }));
+                livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'moderation' });
                 const msgElement = document.getElementById(`chat-msg-${messageId}`);
                 if (msgElement) msgElement.remove();
-                const response = fetch(`${API_URL}/api/rooms/chat/${messageId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${jwtToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                fetch(`${API_URL}/api/rooms/chat/${messageId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${jwtToken}` } });
             } else if (broadcastType === 'mesh' && signalRConnection) {
                 signalRConnection.invoke('DeleteMessage', currentRoomId, messageId).catch(err => console.error(err));
             }
@@ -695,22 +694,12 @@
             setTimeout(() => reaction.remove(), 4000);
         }
 
-        function openPollModal() {
-            pollModal.classList.remove('hidden');
-            pollModal.classList.add('flex');
-        }
-
-        function closePollModal() {
-            pollModal.classList.add('hidden');
-            pollModal.classList.remove('flex');
-        }
+        function openPollModal() { pollModal.classList.remove('hidden'); pollModal.classList.add('flex'); }
+        function closePollModal() { pollModal.classList.add('hidden'); pollModal.classList.remove('flex'); }
 
         function addPollOption() {
             const container = document.getElementById('poll-options-container');
-            if (container.children.length >= 5) {
-                alert("Maximum of 5 options allowed.");
-                return;
-            }
+            if (container.children.length >= 5) { alert("Maximum of 5 options allowed."); return; }
             const newOption = document.createElement('div');
             newOption.innerHTML = `<label class="block text-sm font-medium text-gray-300 mb-1">Option ${container.children.length + 1}</label><input type="text" name="poll-option" required maxlength="100" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600">`;
             container.appendChild(newOption);
@@ -720,29 +709,14 @@
             e.preventDefault();
             const question = document.getElementById('poll-question').value;
             const optionInputs = document.querySelectorAll('input[name="poll-option"]');
-            const options = Array.from(optionInputs).map((input, index) => ({
-                index: index,
-                text: input.value,
-                votes: 0
-            }));
-            if (options.some(opt => !opt.text)) {
-                alert("All poll options must have text.");
-                return;
-            }
-            currentPoll = {
-                id: `poll-${Date.now()}`,
-                question: question,
-                options: options
-            };
-            const payload = {
-                type: 'poll_start',
-                poll: currentPoll
-            };
+            const options = Array.from(optionInputs).map((input, index) => ({ index: index, text: input.value, votes: 0 }));
+            if (options.some(opt => !opt.text)) { alert("All poll options must have text."); return; }
+
+            currentPoll = { id: `poll-${Date.now()}`, question: question, options: options };
+            const payload = { type: 'poll_start', poll: currentPoll };
             const data = new TextEncoder().encode(JSON.stringify(payload));
-            livekitRoom.localParticipant.publishData(data, {
-                reliable: true,
-                topic: 'poll'
-            });
+            livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'poll' });
+
             displayPollResults();
             closePollModal();
             pollModalForm.reset();
@@ -755,15 +729,9 @@
                 if (option) {
                     option.votes += 1;
                     updatePollResults();
-                    const payload = {
-                        type: 'poll_update',
-                        results: currentPoll.options
-                    };
+                    const payload = { type: 'poll_update', results: currentPoll.options };
                     const data = new TextEncoder().encode(JSON.stringify(payload));
-                    livekitRoom.localParticipant.publishData(data, {
-                        reliable: true,
-                        topic: 'poll'
-                    });
+                    livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'poll' });
                 }
             }
         }
@@ -781,46 +749,6 @@
                 return `<div class="mb-2"><div class="flex justify-between items-center mb-1"><span class="text-sm font-medium text-gray-300">${option.text}</span><span class="text-sm font-bold text-white">${option.votes} votes (${percentage}%)</span></div><div class="w-full bg-gray-600 rounded-full h-4"><div class="bg-cyan-500 h-4 rounded-full poll-progress-bar" style="width: ${percentage}%"></div></div></div>`;
             }).join('');
             pollResultsContainer.innerHTML = `<h4 class="text-xl font-bold mb-3">${currentPoll.question}</h4>${optionsHtml}<p class="text-sm text-gray-400 mt-3">Total Votes: ${totalVotes}</p>`;
-        }
-
-        async function handleRegister() {
-            const username = document.getElementById('register-username').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password').value;
-            const registerError = document.getElementById('register-error');
-            registerError.textContent = '';
-            if (!username || !password) {
-                registerError.textContent = 'Username and password are required.';
-                return;
-            }
-            if (password !== confirmPassword) {
-                registerError.textContent = 'Passwords do not match.';
-                return;
-            }
-            try {
-                const response = await fetch(`${API_URL}/api/auth/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        Username: username,
-                        Password: password
-                    })
-                });
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.message || 'Registration failed.');
-                }
-                alert('Registration successful! Please log in.');
-                document.getElementById('register-username').value = '';
-                document.getElementById('register-password').value = '';
-                document.getElementById('register-confirm-password').value = '';
-                showLoginLink.click();
-            } catch (error) {
-                registerError.textContent = error.message;
-                console.error('Registration failed:', error);
-            }
         }
     })();
 });
