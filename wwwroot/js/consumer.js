@@ -157,6 +157,8 @@
                 const element = track.attach();
                 if (track.kind === 'video') {
                     remoteVideo.srcObject = element.srcObject;
+
+
                 } else {
                     document.body.appendChild(element);
                 }
@@ -335,6 +337,8 @@
         }
 
         function sendReaction(emoji) {
+            showReaction(emoji);
+
             if (!livekitRoom) return;
             const payload = {
                 type: 'reaction',
