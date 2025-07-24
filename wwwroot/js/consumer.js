@@ -126,17 +126,11 @@
             if (signalRConnection) await signalRConnection.stop();
             window.location.reload();
         }
-        async function connectToSfuStream({
-            liveKitUrl,
-            token
-        }) {
+        async function connectToSfuStream({ liveKitUrl, token }) {
             statusDiv.textContent = 'SFU broadcast found! Connecting...';
             livekitRoom = new LivekitClient.Room();
+
             livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-                console.log('--- CONSUMER: LiveKit Data Received ---', {
-                    topic,
-                    from: participant.identity
-                });
                 try {
                     const message = JSON.parse(new TextDecoder().decode(payload));
                     if (topic === 'chat') {
@@ -153,16 +147,18 @@
                     console.error("Failed to parse incoming data payload:", e);
                 }
             });
-            livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
-                const element = track.attach();
+
+            livekitRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication) => {
                 if (track.kind === 'video') {
+                    const element = track.attach();
                     remoteVideo.srcObject = element.srcObject;
-
-
-                } else {
+                    setupQualityControls(publication);                     
+                } else if (track.kind === 'audio') {
+                    const element = track.attach();
                     document.body.appendChild(element);
                 }
             });
+
             livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
                 viewerCountNumber.textContent = livekitRoom.numParticipants;
             });
@@ -179,8 +175,8 @@
                     viewerCountNumber.textContent = livekitRoom.numParticipants;
                 }
             });
+
             await livekitRoom.connect(liveKitUrl, token);
-            console.log('--- CONSUMER: Connected to LiveKit Room ---');
         }
         async function connectToMeshStream(details) {
             statusDiv.textContent = "Mesh broadcast found! Connecting...";
@@ -228,6 +224,32 @@
             };
             return pc
         }
+
+        function setupQualityControls(publication) {
+            qualityControls.innerHTML = '';
+            const createButton = (label, quality) => {
+                const btn = document.createElement('button');
+                btn.textContent = label;
+                btn.className = 'px-3 py-1 text-sm rounded-md bg-gray-600 hover:bg-cyan-600 transition-colors';
+                btn.onclick = () => {
+                    publication.setVideoQuality(quality);
+                    Array.from(qualityControls.children).forEach(child => {
+                        child.classList.remove('bg-cyan-500');
+                    });
+                    btn.classList.add('bg-cyan-500');
+                };
+                return btn;
+            };
+
+            if (publication.kind === 'video' && publication.simulcasted) {
+                qualityControls.appendChild(createButton('High', LivekitClient.VideoQuality.HIGH));
+                qualityControls.appendChild(createButton('Medium', LivekitClient.VideoQuality.MEDIUM));
+                qualityControls.appendChild(createButton('Low', LivekitClient.VideoQuality.LOW));
+                publication.setVideoQuality(LivekitClient.VideoQuality.HIGH);
+                qualityControls.children[0].classList.add('bg-cyan-500');
+            }
+        }
+
 
         async function sendChatMessage() {
             const text = chatInput.value;
@@ -372,23 +394,23 @@
 
         function displayPoll(poll) {
             let optionsHtml = poll.options.map(option => `
-                <button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">
-                    ${option.text}
-                </button>
-            `).join('');
+                <button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">
+                    ${option.text}
+                </button>
+            `).join('');
             pollContainer.innerHTML = `
-                <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
-                    <div class="poll-header">
-                        <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
-                        <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
-                    </div>
-                    <div class="poll-body mt-3">
-                        <div class="space-y-2 poll-options">
-                            ${optionsHtml}
-                        </div>
-                    </div>
-                </div>
-            `;
+                <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
+                    <div class="poll-header">
+                        <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
+                        <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
+                    </div>
+                    <div class="poll-body mt-3">
+                        <div class="space-y-2 poll-options">
+                            ${optionsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function sendPollVote(pollId, optionIndex) {

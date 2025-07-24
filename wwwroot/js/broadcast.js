@@ -436,7 +436,8 @@
                     screenShareVideo.srcObject = screenShareStream;
                     screenShareContainer.classList.remove('hidden');
                     screenSharePublication = await livekitRoom.localParticipant.publishTrack(screenTrack, {
-                        name: 'screen'
+                        name: 'screen', 
+                        simulcast: true
                     });
                     if (webcamPublication) {
                         await livekitRoom.localParticipant.unpublishTrack(webcamPublication.trackSid);
@@ -458,7 +459,8 @@
                 }
                 if (webcamPublication && livekitRoom && !livekitRoom.localParticipant.getTrackPublication(webcamPublication.source)) {
                     await livekitRoom.localParticipant.publishTrack(webcamPublication.track, {
-                        name: 'camera'
+                        name: 'camera',
+                        simulcast: true
                     });
                 }
                 screenSharePublication = null;
