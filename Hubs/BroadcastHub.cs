@@ -26,7 +26,7 @@ namespace gstream.Hubs
             }
             if (broadcastType == "mesh")
             {
-                await _stateService.StartBroadcastAsync(roomId, Context.UserIdentifier!, broadcastType, Context.ConnectionId);
+                await _stateService.StartBroadcastAsync(roomId, Context.User!.Identity!.Name!, broadcastType, Context.ConnectionId);
                 await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
                 await Clients.Caller.SendAsync("BroadcastStarted");
             }
