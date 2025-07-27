@@ -126,19 +126,35 @@
             if (signalRConnection) await signalRConnection.stop();
             window.location.reload();
         }
-        async function connectToSfuStream({ liveKitUrl, token }) {
+        async function connectToSfuStream({ liveKitUrl, livekitToken, signalrToken }) {
             statusDiv.textContent = 'SFU broadcast found! Connecting...';
+
+            signalRConnection = new signalR.HubConnectionBuilder()
+                .withUrl(`${API_URL}/broadcasthub?access_token=${signalrToken}`)
+                .withAutomaticReconnect()
+                .build();
+
+            signalRConnection.on('ReceiveChatMessage', (id, user, message) => displayChatMessage(id, user, message, user === myUsername));
+            signalRConnection.on('MessageDeleted', (id) => {
+                const msgEl = document.getElementById(`chat-msg-${id}`);
+                if (msgEl) msgEl.remove();
+            });
+
+            try {
+                await signalRConnection.start();
+                console.log("Consumer SignalR connected");
+                await signalRConnection.invoke('SubscribeToRoom', currentRoomId);
+            } catch (e) {
+                console.error("SignalR connection failed", e);
+                statusDiv.textContent = 'Could not connect to chat service.';
+            }
+
             livekitRoom = new LivekitClient.Room();
 
             livekitRoom.on(LivekitClient.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
                 try {
                     const message = JSON.parse(new TextDecoder().decode(payload));
-                    if (topic === 'chat') {
-                        displayChatMessage(message.id, message.username, message.content, message.username === myUsername);
-                    } else if (topic === 'moderation' && message.action === 'delete') {
-                        const msgElement = document.getElementById(`chat-msg-${message.id}`);
-                        if (msgElement) msgElement.remove();
-                    } else if (topic === 'reaction') {
+                    if (topic === 'reaction') {
                         showReaction(message.emoji);
                     } else if (topic === 'poll') {
                         handlePollMessage(message);
@@ -152,7 +168,7 @@
                 if (track.kind === 'video') {
                     const element = track.attach();
                     remoteVideo.srcObject = element.srcObject;
-                    setupQualityControls(publication);                     
+                    setupQualityControls(publication);
                 } else if (track.kind === 'audio') {
                     const element = track.attach();
                     document.body.appendChild(element);
@@ -176,7 +192,7 @@
                 }
             });
 
-            await livekitRoom.connect(liveKitUrl, token);
+            await livekitRoom.connect(liveKitUrl, livekitToken);
         }
         async function connectToMeshStream(details) {
             statusDiv.textContent = "Mesh broadcast found! Connecting...";
@@ -253,47 +269,15 @@
 
         async function sendChatMessage() {
             const text = chatInput.value;
-            if (!text) return;
-            chatInput.value = '';
+            if (!text || !signalRConnection || signalRConnection.state !== 'Connected') return;
 
-            if (broadcastType === 'mesh' && signalRConnection) {
-                signalRConnection.invoke('SendChatMessage', currentRoomId, text).catch(err => console.error("Chat send error:", err));
-                return;
-            }
-
-            if (broadcastType === 'sfu' && livekitRoom) {
-                try {
-                    const apiKey = apiKeyInput.value;
-                    if (!apiKey) {
-                        console.error("API Key not found, cannot save chat message.");
-                        return;
-                    }
-
-                    const response = await fetch(`${API_URL}/api/rooms/${currentRoomId}/chat`, {
-                        method: 'POST',
-                        headers: {
-                            'X-Api-Key': apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            Content: text
-                        })
-                    });
-                    if (!response.ok) throw new Error('Failed to save message via API');
-
-                    const savedMessageDto = await response.json();
-
-                    const data = new TextEncoder().encode(JSON.stringify(savedMessageDto));
-                    livekitRoom.localParticipant.publishData(data, {
-                        reliable: true,
-                        topic: 'chat'
-                    });
-
-                    displayChatMessage(savedMessageDto.id, savedMessageDto.username, savedMessageDto.content, true);
-                } catch (error) {
-                    console.error("Failed to send chat message:", error);
-                    chatInput.value = text;
-                }
+            try {
+                await signalRConnection.invoke('SendChatMessage', currentRoomId, text);
+                chatInput.value = '';
+            } catch (err) {
+                console.error("Chat send error:", err);
+                chatInput.value = text;
+                alert('Could not send message. Connection may be lost.');
             }
         }
         async function fetchAndRenderChatHistory(roomId) {
@@ -401,17 +385,17 @@
             let optionsHtml = poll.options.map(option => `<button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">${option.text}</button>`).join('');
 
             pollContainer.innerHTML = `
-        <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
-            <div class="poll-header">
-                <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
-                <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
-            </div>
-            <div class="poll-body mt-3">
-                <div class="space-y-2 poll-options">
-                    ${optionsHtml}
-                </div>
+    <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
+        <div class="poll-header">
+            <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
+            <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
+        </div>
+        <div class="poll-body mt-3">
+            <div class="space-y-2 poll-options">
+                ${optionsHtml}
             </div>
         </div>
+    </div>
     `;
         }
 

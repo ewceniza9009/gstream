@@ -135,6 +135,7 @@
             if (!jwtToken) return;
             const decodedToken = parseJwt(jwtToken);
             isAdmin = decodedToken && decodedToken.role === 'Admin';
+            userRole = decodedToken ? decodedToken.role.toLowerCase() : 'consumer';
             adminLink.classList.toggle('hidden', !isAdmin);
         }
 
@@ -328,9 +329,9 @@
                 }
                 return await navigator.mediaDevices.getUserMedia({
                     video: { deviceId: { exact: deviceId } },
-                    audio: true                         
+                    audio: true
                 });
-            } else {     
+            } else {
                 const url = ipCameraUrlInput.value;
                 if (!url) throw new Error('Please enter the IP Camera stream URL.');
 
@@ -351,7 +352,6 @@
         }
 
         async function startBroadcast() {
-            userRole = 'broadcaster';
             currentRoomId = document.getElementById('room-id').value;
             broadcastType = document.querySelector('input[name="broadcastType"]:checked').value;
 
@@ -397,6 +397,11 @@
                 const { liveKitUrl, token, username } = await response.json();
                 myUsername = username;
 
+                if (!await initializeSignalR()) {
+                    throw new Error("Could not connect to the chat service.");
+                }
+                await signalRConnection.invoke('SubscribeToRoom', currentRoomId);
+
                 livekitRoom = new LivekitClient.Room();
                 setupLiveKitListeners();
 
@@ -420,25 +425,31 @@
 
         async function initializeSignalR() {
             signalRConnection = new signalR.HubConnectionBuilder().withUrl(`${API_URL}/broadcasthub?access_token=${jwtToken}`).withAutomaticReconnect().build();
-            signalRConnection.on('NewViewer', async (viewerId) => {
-                const pc = createPeerConnection(viewerId);
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                await signalRConnection.invoke('SendOfferToViewer', viewerId, offer);
-            });
-            signalRConnection.on('ReceiveAnswerFromViewer', async (answer, viewerId) => {
-                await peerConnections[viewerId]?.setRemoteDescription(new RTCSessionDescription(answer));
-            });
+
             signalRConnection.on('ReceiveChatMessage', (messageId, user, message) => displayChatMessage(messageId, user, message, user === myUsername));
-            signalRConnection.on('ViewerLeft', (viewerId) => { peerConnections[viewerId]?.close(); delete peerConnections[viewerId]; });
-            signalRConnection.on('BroadcastEnded', () => { alert('The broadcast has ended.'); handleLeave(); });
-            signalRConnection.on('UpdateViewerCount', (count) => { viewerCountNumber.textContent = count; });
             signalRConnection.on('MessageDeleted', (messageId) => { const msgElement = document.getElementById(`chat-msg-${messageId}`); if (msgElement) msgElement.remove(); });
+            signalRConnection.on('BroadcastEnded', () => { alert('The broadcast has ended.'); handleLeave(); });
+
+            if (broadcastType === 'mesh') {
+                signalRConnection.on('UpdateViewerCount', (count) => { viewerCountNumber.textContent = count; });
+                signalRConnection.on('NewViewer', async (viewerId) => {
+                    const pc = createPeerConnection(viewerId);
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    await signalRConnection.invoke('SendOfferToViewer', viewerId, offer);
+                });
+                signalRConnection.on('ReceiveAnswerFromViewer', async (answer, viewerId) => {
+                    await peerConnections[viewerId]?.setRemoteDescription(new RTCSessionDescription(answer));
+                });
+                signalRConnection.on('ViewerLeft', (viewerId) => { peerConnections[viewerId]?.close(); delete peerConnections[viewerId]; });
+            }
 
             try {
                 await signalRConnection.start();
+                console.log("Broadcaster SignalR Connected.");
                 return true;
             } catch (error) {
+                console.error("SignalR Connection Error: ", error);
                 return false;
             }
         }
@@ -448,12 +459,7 @@
                 console.log('--- BROADCASTER: LiveKit Data Received ---', { topic, from: participant.identity });
                 try {
                     const message = JSON.parse(new TextDecoder().decode(payload));
-                    if (topic === 'chat') {
-                        displayChatMessage(message.id, message.username, message.content, message.username === myUsername);
-                    } else if (topic === 'moderation' && message.action === 'delete') {
-                        const msgElement = document.getElementById(`chat-msg-${message.id}`);
-                        if (msgElement) msgElement.remove();
-                    } else if (topic === 'reaction') {
+                    if (topic === 'reaction') {
                         showReaction(message.emoji);
                     } else if (topic === 'poll') {
                         handlePollMessage(message);
@@ -478,8 +484,8 @@
         }
 
         async function handleLeave() {
-            if (livekitRoom || signalRConnection) {
-                await handleScreenShare(false);                 
+            if (livekitRoom || signalRConnection || Object.keys(peerConnections).length > 0) {
+                await handleScreenShare(false);
                 if (livekitRoom) {
                     await livekitRoom.disconnect();
                     livekitRoom = null;
@@ -494,22 +500,24 @@
                 }
                 Object.values(peerConnections).forEach(pc => pc.close());
                 peerConnections = {};
-            }
-            if (userRole === 'broadcaster' && broadcastType === 'sfu' && currentRoomId) {
-                try {
-                    await fetch(`${API_URL}/api/broadcast/end/sfu/${currentRoomId}`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${jwtToken}` }
-                    });
-                } catch (error) {
-                    console.error('Error sending end signal:', error);
+
+                if (userRole === 'broadcaster' && broadcastType === 'sfu' && currentRoomId) {
+                    try {
+                        await fetch(`${API_URL}/api/broadcast/end/sfu/${currentRoomId}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${jwtToken}` }
+                        });
+                    } catch (error) {
+                        console.error('Error sending end signal:', error);
+                    }
                 }
+                streamingSection.classList.add('hidden');
+                broadcastDashboard.classList.remove('hidden');
+                showRoomSelection();
+                await fetchAndRenderRooms();
             }
-            streamingSection.classList.add('hidden');
-            broadcastDashboard.classList.remove('hidden');
-            showRoomSelection();
-            await fetchAndRenderRooms();
         }
+
 
         async function handleScreenShare(enabled) {
             if (enabled) {
@@ -592,33 +600,14 @@
 
         async function sendChatMessage() {
             const text = chatInput.value;
-            if (!text) return;
-            chatInput.value = '';
+            if (!text || !signalRConnection || signalRConnection.state !== 'Connected') return;
 
-            if (broadcastType === 'mesh' && signalRConnection) {
-                signalRConnection.invoke('SendChatMessage', currentRoomId, text);
-                return;
-            }
-
-            if (broadcastType === 'sfu' && livekitRoom) {
-                let payload = { id: Date.now(), username: myUsername, content: text, timestamp: new Date().toISOString() };
-                try {
-                    const response = await fetch(`${API_URL}/api/rooms/${currentRoomId}/chat`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ Content: text })
-                    });
-                    if (response.ok) {
-                        payload = await response.json();                         
-                    } else {
-                        console.warn('Could not save chat message to history.');
-                    }
-                } catch (error) {
-                    console.error("API call to save chat message failed:", error);
-                }
-                const data = new TextEncoder().encode(JSON.stringify(payload));
-                livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'chat' });
-                displayChatMessage(payload.id, payload.username, payload.content, true);
+            try {
+                await signalRConnection.invoke('SendChatMessage', currentRoomId, text);
+                chatInput.value = '';
+            } catch (err) {
+                console.error("Chat send error:", err);
+                alert("Could not send message. Connection may be lost.");
             }
         }
 
@@ -642,12 +631,17 @@
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble flex flex-col w-full max-w-xs p-2.5 rounded-lg' + (isSelf ? ' rounded-br-none bg-blue-700' : ' rounded-bl-none bg-gray-600');
             bubble.innerHTML = `<p class="text-sm font-normal text-white break-words">${message}</p>`;
+
+            const isBroadcaster = userRole === 'broadcaster';
+            const canDelete = isAdmin || isBroadcaster || isSelf;
+
             header.appendChild(usernameSpan);
-            if (isAdmin || userRole === 'broadcaster') {
+            if (canDelete) {
                 header.appendChild(deleteBtn);
             }
             bubbleContainer.appendChild(header);
             bubbleContainer.appendChild(bubble);
+
             if (isSelf) {
                 msgContainer.appendChild(bubbleContainer);
                 msgContainer.appendChild(avatar);
@@ -672,14 +666,13 @@
 
         function handleDeleteMessage(messageId) {
             if (!confirm("Are you sure you want to delete this message?")) return;
-            if (broadcastType === 'sfu' && livekitRoom) {
-                const data = new TextEncoder().encode(JSON.stringify({ action: 'delete', id: messageId }));
-                livekitRoom.localParticipant.publishData(data, { reliable: true, topic: 'moderation' });
-                const msgElement = document.getElementById(`chat-msg-${messageId}`);
-                if (msgElement) msgElement.remove();
-                fetch(`${API_URL}/api/rooms/chat/${messageId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${jwtToken}` } });
-            } else if (broadcastType === 'mesh' && signalRConnection) {
-                signalRConnection.invoke('DeleteMessage', currentRoomId, messageId).catch(err => console.error(err));
+            if (!signalRConnection || signalRConnection.state !== 'Connected') return;
+
+            try {
+                signalRConnection.invoke('DeleteMessage', currentRoomId, messageId);
+            } catch (err) {
+                console.error("Delete message error:", err);
+                alert("Could not delete message.");
             }
         }
 

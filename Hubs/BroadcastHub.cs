@@ -17,6 +17,11 @@ namespace gstream.Hubs
             _roomService = roomService;
         }
 
+        public async Task SubscribeToRoom(string roomId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
+        }
+
         public async Task StartBroadcast(string roomId, string broadcastType)
         {
             if (await _stateService.IsBroadcastActiveAsync(roomId))

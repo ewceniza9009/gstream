@@ -61,20 +61,30 @@ namespace gstream.Controllers
             var broadcastType = await _stateService.GetBroadcastTypeAsync(roomId);
             var consumerIdentity = request.Username;
 
+            var user = await _userService.GetUserByUsernameAsync(consumerIdentity);
+            if (user == null)
+            {
+                return Unauthorized(new { message = "Authenticated user could not be found in the database." });
+            }
+
             if (broadcastType == "sfu")
             {
                 var liveKitToken = _liveKitService.GenerateToken(roomId, consumerIdentity, isBroadcaster: false);
-                return Ok(new { broadcastType = "sfu", roomId, liveKitUrl = _liveKitService.GetLiveKitUrl(), token = liveKitToken, username = consumerIdentity, message = "SFU broadcast found. Use the LiveKit token to connect." });
+                var signalrToken = _tokenService.GenerateToken(user);
+
+                return Ok(new
+                {
+                    broadcastType = "sfu",
+                    roomId,
+                    liveKitUrl = _liveKitService.GetLiveKitUrl(),
+                    livekitToken = liveKitToken,
+                    signalrToken,
+                    username = consumerIdentity,
+                    message = "SFU broadcast found. Use the tokens to connect."
+                });
             }
             else
             {
-                var user = await _userService.GetUserByUsernameAsync(consumerIdentity);
-
-                if (user == null)
-                {
-                    return Unauthorized(new { message = "Authenticated user could not be found in the database." });
-                }
-
                 var temporaryToken = _tokenService.GenerateToken(user);
                 return Ok(new { broadcastType = "mesh", roomId, signalRHubUrl = "/broadcasthub", token = temporaryToken, username = consumerIdentity, message = "Mesh broadcast found. Use the provided JWT to connect to the SignalR hub." });
             }
