@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # The gstream ASP.NET Application
+  gstream-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gstream-app
+    ports:
+      - "5107:8080" # Map host port 5107 to container port 8080
+    environment:
+      # Use the special 'host.docker.internal' to connect to SQL Server on your host machine
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Database=gstream;User Id=gstream_user;Password=gstream_pass;TrustServerCertificate=True;
+      - ConnectionStrings__Redis=redis:6379
+      
+      # --- JWT Configuration ---
+      - Jwt__Issuer=gstream-api
+      - Jwt__Audience=gstream-clients
+      - Jwt__Key=A_VERY_LONG_AND_SECURE_SECRET_KEY_FOR_JWT_SIGNING_32_CHARS
+
+      # --- LiveKit Configuration ---
+      # This URL is sent to the client's browser. It must be accessible from the network.
+      - LiveKit__Url=ws://192.168.1.7:7880 
+      # This URL is for backend-to-backend communication inside Docker. It stays as 'livekit'.
+      - LiveKit__PrivateUrl=http://livekit:7880 
+      - LiveKit__ApiKey=APIKeyForGStream
+      - LiveKit__ApiSecret=ThisIsMyNewVerySecureSecretKeyForLiveKit32
+      
+      # --- Application URLs ---
+      - ASPNETCORE_URLS=http://+:8080
+      # This URL is sent to the client's browser. It must be accessible from the network.
+      - PublicUrl=http://192.168.1.7:5107 
+    depends_on:
+      - redis
+      - livekit
+    networks:
+      - gstream-network
+
+  # LiveKit Media Server
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: gstream-livekit
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"    # API and WebSocket
+      - "7881:7881/udp" # WebRTC
+      - "50000-50100:50000-50100/udp" # WebRTC port range
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+    networks:
+      - gstream-network
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: gstream-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - gstream-network
+
+networks:
+  gstream-network:
+    driver: bridge
