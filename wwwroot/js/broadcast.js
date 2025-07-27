@@ -41,7 +41,7 @@
         const refreshCamerasBtn = document.getElementById('refresh-cameras-btn');
 
         let localVideoContainer, screenShareContainer, chatSection, localVideo, screenShareVideo, statusDiv,
-            viewerCountNumber, recordBtn, leaveBtn, startScreenShareBtn, stopScreenShareBtn, createPollBtn, pollModal, pollModalForm,
+            viewerCountNumber, recordBtn, stopRecordBtn, leaveBtn, startScreenShareBtn, stopScreenShareBtn, createPollBtn, pollModal, pollModalForm,
             closePollModalBtn, addPollOptionBtn, pollResultsContainer, chatMessages, chatInput, chatSendButton;
 
         let jwtToken;
@@ -60,6 +60,7 @@
         let webcamPublication = null;
         let currentPoll = null;
         let streamingEventListenersInitialized = false;
+        let currentEgressId = null; // To store the ID of the active recording
 
         const iceServers = {
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
@@ -100,6 +101,7 @@
             statusDiv = document.getElementById('status');
             viewerCountNumber = document.getElementById('viewer-count-number');
             recordBtn = document.getElementById('record-button');
+            stopRecordBtn = document.getElementById('stop-record-button');
             leaveBtn = document.getElementById('leave-button');
             startScreenShareBtn = document.getElementById('start-screenshare-button');
             stopScreenShareBtn = document.getElementById('stop-screenshare-button');
@@ -123,6 +125,7 @@
             chatSendButton.addEventListener('click', sendChatMessage);
             chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChatMessage(); });
             recordBtn.addEventListener('click', handleRecording);
+            stopRecordBtn.addEventListener('click', handleStopRecording);
 
             streamingEventListenersInitialized = true;
         }
@@ -485,6 +488,9 @@
 
         async function handleLeave() {
             if (livekitRoom || signalRConnection || Object.keys(peerConnections).length > 0) {
+                if (currentEgressId) {
+                    await handleStopRecording();
+                }
                 await handleScreenShare(false);
                 if (livekitRoom) {
                     await livekitRoom.disconnect();
@@ -567,7 +573,10 @@
 
         async function handleRecording() {
             if (!currentRoomId) { alert("You must start a broadcast before you can record."); return; }
-            if (!confirm("Are you sure you want to start recording this broadcast?")) return;
+
+            recordBtn.disabled = true;
+            recordBtn.textContent = 'Starting...';
+
             try {
                 const response = await fetch(`${API_URL}/api/broadcast/record/start/${currentRoomId}`, {
                     method: 'POST',
@@ -575,12 +584,56 @@
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.message || 'Failed to start recording.');
+
                 alert(result.message);
-                recordBtn.disabled = true;
-                recordBtn.textContent = 'Recording...';
+                currentEgressId = result.egressId;
+
+                recordBtn.classList.add('hidden');
+                stopRecordBtn.classList.remove('hidden');
+
             } catch (error) {
                 console.error('Recording error:', error);
                 alert(`Could not start recording: ${error.message}`);
+                recordBtn.disabled = false;
+                recordBtn.innerHTML = '<i class="fas fa-record-vinyl"></i> Start Recording';
+            }
+        }
+
+        async function handleStopRecording() {
+            if (!currentEgressId) {
+                alert("No active recording to stop.");
+                return;
+            }
+
+            stopRecordBtn.disabled = true;
+            stopRecordBtn.textContent = 'Stopping...';
+
+            try {
+                const response = await fetch(`${API_URL}/api/broadcast/record/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${jwtToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ egressId: currentEgressId })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Failed to stop recording.');
+
+                alert(result.message);
+                currentEgressId = null;
+
+                stopRecordBtn.classList.add('hidden');
+                recordBtn.classList.remove('hidden');
+                recordBtn.disabled = false;
+                recordBtn.innerHTML = '<i class="fas fa-record-vinyl"></i> Start Recording';
+
+            } catch (error) {
+                console.error('Stop recording error:', error);
+                alert(`Could not stop recording: ${error.message}`);
+            } finally {
+                stopRecordBtn.disabled = false;
+                stopRecordBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Recording';
             }
         }
 

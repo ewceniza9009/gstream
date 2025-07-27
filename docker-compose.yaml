@@ -8,29 +8,20 @@ services:
       dockerfile: Dockerfile
     container_name: gstream-app
     ports:
-      - "5107:8080" # Map host port 5107 to container port 8080
+      - "5107:8080"
+    # Using map syntax for environment variables for better readability and reliability
     environment:
-      # Use the special 'host.docker.internal' to connect to SQL Server on your host machine
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Database=gstream;User Id=gstream_user;Password=gstream_pass;TrustServerCertificate=True;
-      - ConnectionStrings__Redis=redis:6379
-      
-      # --- JWT Configuration ---
-      - Jwt__Issuer=gstream-api
-      - Jwt__Audience=gstream-clients
-      - Jwt__Key=A_VERY_LONG_AND_SECURE_SECRET_KEY_FOR_JWT_SIGNING_32_CHARS
-
-      # --- LiveKit Configuration ---
-      # This URL is sent to the client's browser. It must be accessible from the network.
-      - LiveKit__Url=ws://192.168.1.7:7880 
-      # This URL is for backend-to-backend communication inside Docker. It stays as 'livekit'.
-      - LiveKit__PrivateUrl=http://livekit:7880 
-      - LiveKit__ApiKey=APIKeyForGStream
-      - LiveKit__ApiSecret=ThisIsMyNewVerySecureSecretKeyForLiveKit32
-      
-      # --- Application URLs ---
-      - ASPNETCORE_URLS=http://+:8080
-      # This URL is sent to the client's browser. It must be accessible from the network.
-      - PublicUrl=http://192.168.1.7:5107 
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal;Database=gstream;User Id=gstream_user;Password=gstream_pass;TrustServerCertificate=True;"
+      ConnectionStrings__Redis: "redis:6379"
+      Jwt__Issuer: "gstream-api"
+      Jwt__Audience: "gstream-clients"
+      Jwt__Key: "A_VERY_LONG_AND_SECURE_SECRET_KEY_FOR_JWT_SIGNING_32_CHARS"
+      LiveKit__Url: "ws://192.168.1.7:7880"
+      LiveKit__PrivateUrl: "http://livekit:7880"
+      LiveKit__ApiKey: "APIKeyForGStream"
+      LiveKit__ApiSecret: "ThisIsMyNewVerySecureSecretKeyForLiveKit32"
+      ASPNETCORE_URLS: "http://+:8080"
+      PublicUrl: "http://192.168.1.7:5107"
     depends_on:
       - redis
       - livekit
@@ -43,13 +34,35 @@ services:
     container_name: gstream-livekit
     command: --config /etc/livekit.yaml
     ports:
-      - "7880:7880"    # API and WebSocket
-      - "7881:7881/udp" # WebRTC
-      - "50000-50100:50000-50100/udp" # WebRTC port range
+      - "7880:7880"
+      - "7881:7881/udp"
+      - "50000-50100:50000-50100/udp"
     volumes:
-      - ./livekit.yaml:/etc/livekit.yaml
+      - ./livekit.yaml:/etc/livekit.yaml:ro
     networks:
       - gstream-network
+
+  # --- LIVEKIT EGRESS SERVICE FOR RECORDING (UPDATED) ---
+  livekit-egress:
+    image: livekit/egress:latest
+    container_name: gstream-livekit-egress
+    restart: always
+    # Using map syntax for the multi-line environment variable
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: APIKeyForGStream
+        api_secret: ThisIsMyNewVerySecureSecretKeyForLiveKit32
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+    volumes:
+      - recordings_volume:/mnt/recordings
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gstream-network
+    depends_on:
+      - livekit
+      - redis
 
   # Redis Cache
   redis:
@@ -63,3 +76,6 @@ services:
 networks:
   gstream-network:
     driver: bridge
+
+volumes:
+  recordings_volume:

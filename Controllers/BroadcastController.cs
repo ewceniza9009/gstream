@@ -41,6 +41,13 @@ namespace gstream.Controllers
             public string Username { get; set; } = string.Empty;
         }
 
+        // --- NEW MODEL FOR THE STOP REQUEST ---
+        public class StopRecordingRequest
+        {
+            public string EgressId { get; set; } = string.Empty;
+        }
+
+
         [HttpPost("join/{roomId}")]
         [Authorize(AuthenticationSchemes = "ApiKey")]
         public async Task<IActionResult> JoinBroadcast(string roomId, [FromBody] JoinRequest request)
@@ -193,6 +200,27 @@ namespace gstream.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = $"Failed to start recording: {ex.Message}" });
+            }
+        }
+
+        // --- NEW ENDPOINT TO STOP RECORDING ---
+        [HttpPost("record/stop")]
+        [Authorize]
+        public async Task<IActionResult> StopRecording([FromBody] StopRecordingRequest request)
+        {
+            if (string.IsNullOrEmpty(request.EgressId))
+            {
+                return BadRequest(new { message = "Egress ID is required." });
+            }
+
+            try
+            {
+                await _liveKitService.StopEgressAsync(request.EgressId);
+                return Ok(new { message = "Recording stopped successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Failed to stop recording: {ex.Message}" });
             }
         }
     }

@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.dockerignore = .dockerignore
 		docker-compse.yaml = docker-compse.yaml
 		Dockerfile = Dockerfile
+		egress.yaml = egress.yaml
 		notes.md = notes.md
 		production-docker-compose.yaml = production-docker-compose.yaml
 	EndProjectSection

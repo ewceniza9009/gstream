@@ -95,5 +95,12 @@ namespace gstream.Services
 
             return token.ToJwt();
         }
+
+        // --- NEW METHOD TO STOP RECORDING ---
+        public async Task<EgressInfo> StopEgressAsync(string egressId)
+        {
+            var egressClient = CreateEgressClient();
+            return await egressClient.StopEgress(new StopEgressRequest { EgressId = egressId });
+        }
     }
 }
