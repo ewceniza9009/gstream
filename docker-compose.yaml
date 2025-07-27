@@ -9,7 +9,6 @@ services:
     container_name: gstream-app
     ports:
       - "5107:8080"
-    # Using map syntax for environment variables for better readability and reliability
     environment:
       ConnectionStrings__DefaultConnection: "Server=host.docker.internal;Database=gstream;User Id=gstream_user;Password=gstream_pass;TrustServerCertificate=True;"
       ConnectionStrings__Redis: "redis:6379"
@@ -47,7 +46,7 @@ services:
     image: livekit/egress:latest
     container_name: gstream-livekit-egress
     restart: always
-    # Using map syntax for the multi-line environment variable
+    # We are no longer running as root
     environment:
       EGRESS_CONFIG_BODY: |
         api_key: APIKeyForGStream
@@ -56,7 +55,9 @@ services:
         redis:
           address: redis:6379
     volumes:
-      - recordings_volume:/mnt/recordings
+      # --- THIS IS THE FIX ---
+      # Bind-mount a local folder instead of using a named volume
+      - ./recordings:/mnt/recordings
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - gstream-network
@@ -77,5 +78,6 @@ networks:
   gstream-network:
     driver: bridge
 
-volumes:
-  recordings_volume:
+# The top-level volumes key is no longer needed for recordings
+# volumes:
+#   recordings_volume:
