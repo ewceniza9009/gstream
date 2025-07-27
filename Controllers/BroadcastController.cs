@@ -41,7 +41,6 @@ namespace gstream.Controllers
             public string Username { get; set; } = string.Empty;
         }
 
-        // --- NEW MODEL FOR THE STOP REQUEST ---
         public class StopRecordingRequest
         {
             public string EgressId { get; set; } = string.Empty;
@@ -203,7 +202,6 @@ namespace gstream.Controllers
             }
         }
 
-        // --- NEW ENDPOINT TO STOP RECORDING ---
         [HttpPost("record/stop")]
         [Authorize]
         public async Task<IActionResult> StopRecording([FromBody] StopRecordingRequest request)

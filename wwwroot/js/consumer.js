@@ -266,7 +266,6 @@
             }
         }
 
-
         async function sendChatMessage() {
             const text = chatInput.value;
             if (!text || !signalRConnection || signalRConnection.state !== 'Connected') return;
@@ -385,20 +384,19 @@
             let optionsHtml = poll.options.map(option => `<button data-poll-id="${poll.id}" data-option-index="${option.index}" class="poll-option-btn w-full text-left bg-gray-600 hover:bg-gray-500 p-3 rounded-md">${option.text}</button>`).join('');
 
             pollContainer.innerHTML = `
-    <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
-        <div class="poll-header">
-            <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
-            <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
-        </div>
-        <div class="poll-body mt-3">
-            <div class="space-y-2 poll-options">
-                ${optionsHtml}
-            </div>
-        </div>
-    </div>
-    `;
+                <div class="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg shadow-lg poll-display" id="poll-${poll.id}">
+                    <div class="poll-header">
+                        <p class="font-bold text-white mb-0 poll-question-text">${poll.question}</p>
+                        <button class="poll-toggle-btn"><i class="fas fa-chevron-up"></i></button>
+                    </div>
+                    <div class="poll-body mt-3">
+                        <div class="space-y-2 poll-options">
+                            ${optionsHtml}
+                        </div>
+                    </div>
+                </div>
+                `;
         }
-
 
         function sendPollVote(pollId, optionIndex) {
             const payload = {

@@ -60,7 +60,7 @@
         let webcamPublication = null;
         let currentPoll = null;
         let streamingEventListenersInitialized = false;
-        let currentEgressId = null; // To store the ID of the active recording
+        let currentEgressId = null;                                 
 
         const iceServers = {
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]
@@ -523,7 +523,6 @@
                 await fetchAndRenderRooms();
             }
         }
-
 
         async function handleScreenShare(enabled) {
             if (enabled) {

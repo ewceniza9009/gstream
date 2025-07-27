@@ -41,7 +41,7 @@ services:
     networks:
       - gstream-network
 
-  # --- LIVEKIT EGRESS SERVICE FOR RECORDING (UPDATED) ---
+  # --- LIVEKIT EGRESS SERVICE FOR RECORDING ---
   livekit-egress:
     image: livekit/egress:latest
     container_name: gstream-livekit-egress
@@ -55,7 +55,6 @@ services:
         redis:
           address: redis:6379
     volumes:
-      # --- THIS IS THE FIX ---
       # Bind-mount a local folder instead of using a named volume
       - ./recordings:/mnt/recordings
       - /var/run/docker.sock:/var/run/docker.sock
