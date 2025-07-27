@@ -1,52 +1,55 @@
-version: '3.8'
-
 services:
-  # The gstream ASP.NET Application
+  # --- NGINX Load Balancer for SSL/HTTPS ---
+  nginx-lb:
+    image: nginx:stable-alpine
+    container_name: gstream-load-balancer-dev
+    ports:
+      - "5107:80"
+      - "5108:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx:/etc/nginx/ssl:ro
+    depends_on:
+      gstream-app:
+        condition: service_healthy
+    networks:
+      - gstream-network
+
+  # --- The gstream ASP.NET Application (Single Instance) ---
   gstream-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: gstream-app
-    ports:
-      - "5107:8080"
+    container_name: gstream-app-dev
     environment:
       ConnectionStrings__DefaultConnection: "Server=host.docker.internal;Database=gstream;User Id=gstream_user;Password=gstream_pass;TrustServerCertificate=True;"
       ConnectionStrings__Redis: "redis:6379"
       Jwt__Issuer: "gstream-api"
       Jwt__Audience: "gstream-clients"
       Jwt__Key: "A_VERY_LONG_AND_SECURE_SECRET_KEY_FOR_JWT_SIGNING_32_CHARS"
-      LiveKit__Url: "ws://192.168.1.7:7880"
+      LiveKit__Url: "wss://192.168.1.7:5108/livekit"
       LiveKit__PrivateUrl: "http://livekit:7880"
       LiveKit__ApiKey: "APIKeyForGStream"
       LiveKit__ApiSecret: "ThisIsMyNewVerySecureSecretKeyForLiveKit32"
       ASPNETCORE_URLS: "http://+:8080"
-      PublicUrl: "http://192.168.1.7:5107"
+      PublicUrl: "https://192.168.1.7:5108"
     depends_on:
-      - redis
-      - livekit
+      livekit:
+        condition: service_healthy
     networks:
       - gstream-network
-
-  # LiveKit Media Server
-  livekit:
-    image: livekit/livekit-server:latest
-    container_name: gstream-livekit
-    command: --config /etc/livekit.yaml
-    ports:
-      - "7880:7880"
-      - "7881:7881/udp"
-      - "50000-50100:50000-50100/udp"
-    volumes:
-      - ./livekit.yaml:/etc/livekit.yaml:ro
-    networks:
-      - gstream-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/config"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # --- LIVEKIT EGRESS SERVICE FOR RECORDING ---
   livekit-egress:
     image: livekit/egress:latest
     container_name: gstream-livekit-egress
     restart: always
-    # We are no longer running as root
     environment:
       EGRESS_CONFIG_BODY: |
         api_key: APIKeyForGStream
@@ -55,28 +58,58 @@ services:
         redis:
           address: redis:6379
     volumes:
-      # Bind-mount a local folder instead of using a named volume
       - ./recordings:/mnt/recordings
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - gstream-network
     depends_on:
-      - livekit
-      - redis
+      livekit:
+        condition: service_healthy
 
-  # Redis Cache
+  # --- Backend Services ---
+  livekit:
+    build:
+      context: .
+      dockerfile: Dockerfile.livekit
+    container_name: gstream-livekit-dev
+    command: --config /etc/livekit.yaml --dev
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50101-50201:50101-50201/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+    networks:
+      - gstream-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7880"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
   redis:
     image: redis:alpine
-    container_name: gstream-redis
+    container_name: gstream-redis-dev
     ports:
       - "6379:6379"
     networks:
       - gstream-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 networks:
   gstream-network:
     driver: bridge
-
-# The top-level volumes key is no longer needed for recordings
-# volumes:
-#   recordings_volume:
