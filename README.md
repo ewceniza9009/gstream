@@ -160,8 +160,8 @@ gstream/
   `http://localhost:[Port#]/consumer.html`
 
 - **Test credentials:**  
-  `Username: testuser`  
-  `Password: password`
+  `Username: admin`  
+  `Password: adminpassword`
 
 ---
 
