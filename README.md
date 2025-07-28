@@ -160,8 +160,8 @@ gstream/
   `http://localhost:[Port#]/consumer.html`
 
 - **Test credentials:**  
-  `Username: testuser`  
-  `Password: password`
+  `Username: admin`  
+  `Password: adminpassword`
 
 ---
 
@@ -174,7 +174,8 @@ gstream/
 <img width="1919" height="887" alt="4" src="https://github.com/user-attachments/assets/0407f862-ca78-4473-bb2c-21998e35decd" />
 <img width="1917" height="890" alt="5" src="https://github.com/user-attachments/assets/669d5e5e-12de-481c-b59b-3a3538654408" />
 <img width="1904" height="898" alt="6" src="https://github.com/user-attachments/assets/dfb85473-4b19-46cc-8997-7c7274ed7899" />
-<img width="1914" height="1026" alt="image" src="https://github.com/user-attachments/assets/857227ca-f2bc-4da7-b560-f237041e4faa" />
+<img width="1919" height="1030" alt="image" src="https://github.com/user-attachments/assets/271b5b11-5632-434b-aeca-d1dc75658e3e" />
+
 
 ---
 
