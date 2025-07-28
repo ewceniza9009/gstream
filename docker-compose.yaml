@@ -55,6 +55,7 @@ services:
         api_key: APIKeyForGStream
         api_secret: ThisIsMyNewVerySecureSecretKeyForLiveKit32
         ws_url: ws://livekit:7880
+        insecure: true
         redis:
           address: redis:6379
     volumes:
@@ -72,7 +73,7 @@ services:
       context: .
       dockerfile: Dockerfile.livekit
     container_name: gstream-livekit-dev
-    command: --config /etc/livekit.yaml --dev
+    command: --config /etc/livekit.yaml
     ports:
       - "7880:7880"
       - "7881:7881"
