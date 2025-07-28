@@ -6,7 +6,7 @@
 
 ## ✨ Features
 
-- 🚀 Scalable Broadcasting via LiveKit SFU, allowing a single broadcaster to stream to a large audience with minimal client-side load.
+- 🚀 Scalable Broadcasting via LiveKit SFU (Self Hosted), allowing a single broadcaster to stream to a large audience with minimal client-side load.
 - 💬 Live Chat for real-time interaction during broadcasts.
 - 📡 Dual Broadcasting Modes: Choose between a simple peer-to-peer mesh for small groups or a powerful SFU for large audiences.
 - 🔗 One-to-one video streaming via WebRTC and SignalR.
